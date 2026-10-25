@@ -9,6 +9,12 @@
         <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
         GDPR — names never leave the system
     </span>
+    <label class="switch-row hero-filter" id="show-all-row" style="display:none"
+           data-tip="The pickers below list only students, groups and lessons that already have assessment data — a report cannot be generated without it. Switch this on to see every registered entry. Nothing is deleted: entries appear automatically as soon as their form data arrives.">
+        <input type="checkbox" id="show-all-toggle">
+        <span class="switch-track"></span>
+        <span class="switch-label">Only entries with data — <strong>show all</strong><span class="opt-tag" id="show-all-count"></span></span>
+    </label>
 </div>
 
 <div class="cards">
@@ -277,10 +283,6 @@
         });
     }
 
-    fill('student-name', data.students, 'Select a student…');
-    fill('lesson-name', data.lessons, 'Select a lesson…');
-    fill('class-group', data.groups, 'Select a class group…');
-
     // ASK ME optional scope pickers: a reselectable "everything" first option.
     function fillWithAllOption(id, items, allLabel) {
         fill(id, items, null);
@@ -292,16 +294,42 @@
         sel.insertBefore(o, sel.firstChild);
         sel.value = '';
     }
-    fillWithAllOption('askme-group', data.groups, 'All classes (whole archive)');
-    fillWithAllOption('askme-lesson', data.lessons, 'All lessons (whole archive)');
+
+    // ----- "Only entries with data" filter -----
+    // The server sends a workable map (entities that have assessments/reports);
+    // the rest are dead ends for reporting, so they are hidden unless the
+    // teacher flips "show all". Fail-open: no workable map -> show everything.
+    const workable = data.workable || null;
+    const showAllRow = document.getElementById('show-all-row');
+    const showAllBox = document.getElementById('show-all-toggle');
+
+    function visible(items, key) {
+        if (!workable || !Array.isArray(workable[key]) || (showAllBox && showAllBox.checked)) return items;
+        const ok = new Set(workable[key]);
+        return items.filter(it => ok.has(it.id));
+    }
 
     // ASK ME: multi-select -> comma-separated hidden field, keeping PICK order
     // (the first picked student is the focus of Find Solution).
     const picker = document.getElementById('class-question-picker');
     const hidden = document.getElementById('class-question');
+    const order = [];
+
+    function renderPickers() {
+        fill('student-name', visible(data.students, 'students'), 'Select a student…');
+        fill('lesson-name', visible(data.lessons, 'lessons'), 'Select a lesson…');
+        fill('class-group', visible(data.groups, 'groups'), 'Select a class group…');
+        fillWithAllOption('askme-group', visible(data.groups, 'groups'), 'All classes (whole archive)');
+        fillWithAllOption('askme-lesson', visible(data.lessons, 'lessons'), 'All lessons (whole archive)');
+        if (picker) {
+            fill('class-question-picker', visible(data.students, 'students'), null);
+            [...picker.options].forEach(o => { o.selected = order.includes(o.value); });
+        }
+        if (hidden) hidden.value = order.join(', ');
+    }
+    renderPickers();
+
     if (picker && hidden) {
-        fill('class-question-picker', data.students, null);
-        const order = [];
         picker.addEventListener('change', () => {
             const selected = [...picker.selectedOptions].map(o => o.value).filter(Boolean);
             const kept = order.filter(v => selected.includes(v));
@@ -310,6 +338,19 @@
             order.push(...kept, ...added);
             hidden.value = order.join(', ');
         });
+    }
+
+    if (workable && showAllRow && showAllBox) {
+        const lists = { students: data.students, groups: data.groups, lessons: data.lessons };
+        const parts = ['students', 'groups', 'lessons']
+            .map(k => ({ k, n: (lists[k] || []).length - (workable[k] || []).length }))
+            .filter(x => x.n > 0)
+            .map(x => `${x.n} ${x.k}`);
+        if (parts.length) {
+            document.getElementById('show-all-count').textContent = parts.join(' · ') + ' without data';
+            showAllRow.style.display = '';
+            showAllBox.addEventListener('change', renderPickers);
+        }
     }
 
     // ASK ME example chips: one click drops the suggestion into the request box.

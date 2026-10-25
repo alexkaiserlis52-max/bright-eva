@@ -350,6 +350,14 @@ ENGLISH_ONLY = ("IMPORTANT: Write your entire response in English only, regardle
 # results — wall-clock drops from sum(latencies) to max(latencies).
 LLM_MAX_PARALLEL = int(os.environ.get("LLM_MAX_PARALLEL", "8"))
 
+# Token budgets for the two report phases. Reasoning models (e.g. gpt-5-nano)
+# spend a large, variable share of max_tokens on hidden reasoning before they
+# emit ANY content — the old 400/800 worker budgets intermittently returned
+# empty for EVERY call (a whole report then got built on placeholders; seen
+# live 2026-10-25 on the class flow). Keep generous headroom.
+_SUMMARY_WORKER_TOKENS = 2000
+_FINAL_REPORT_TOKENS = 3000
+
 
 def _chat_text(messages, max_tokens, model, retries=2):
     """chat.completions.create with retries and null-content safety.
@@ -641,7 +649,7 @@ def ChildrenAssessemnt(StudID, date, AssesType, role, save, model=None):
             {"role": "system", "content": f"You are an insightful Teacher. {ENGLISH_ONLY}"},
             {"role": "user", "content": prompt},
         ]
-        text = _chat_text(message, 800, model)
+        text = _chat_text(message, _SUMMARY_WORKER_TOKENS, model)
         print(f"--- pre {i + 1}/{len(PreAssesments_list)} done ---")
         return text
 
@@ -651,7 +659,7 @@ def ChildrenAssessemnt(StudID, date, AssesType, role, save, model=None):
             {"role": "system", "content": f"You are an expert producing reports. {ENGLISH_ONLY}"},
             {"role": "user", "content": f"{prompt}"},
         ]
-        text = _chat_text(message, 800, model)
+        text = _chat_text(message, _SUMMARY_WORKER_TOKENS, model)
         print(f"--- fo {i + 1}/{number_of_Fo_Assessments} done ---")
         return text
 
@@ -661,7 +669,7 @@ def ChildrenAssessemnt(StudID, date, AssesType, role, save, model=None):
             {"role": "system", "content": f"You are an expert producing reports. {ENGLISH_ONLY}"},
             {"role": "user", "content": f"{prompt}"},
         ]
-        text = _chat_text(message, 800, model)
+        text = _chat_text(message, _SUMMARY_WORKER_TOKENS, model)
         print(f"--- self {i + 1}/{number_of_Self_Assessments} done ---")
         return text
 
@@ -671,7 +679,7 @@ def ChildrenAssessemnt(StudID, date, AssesType, role, save, model=None):
             {"role": "system", "content": f"You are an expert producing reports. {ENGLISH_ONLY}"},
             {"role": "user", "content": f"{prompt}"},
         ]
-        text = _chat_text(message, 800, model)
+        text = _chat_text(message, _SUMMARY_WORKER_TOKENS, model)
         print(f"--- post {i + 1}/{number_of_Post_Assessments} done ---")
         return text
 
@@ -721,7 +729,7 @@ def ChildrenAssessemnt(StudID, date, AssesType, role, save, model=None):
             }
         ]
         # Make an API request to generate the report (retry + null-safe)
-        response_message = _chat_text(message, 1500, model)
+        response_message = _chat_text(message, _FINAL_REPORT_TOKENS, model)
         print(f"Finale Report Assessment:----------------------")
     elif number_of_Pre_Assessments != 0:
         response_message = "Only Pre assessment found. Here is the Report:\n"
@@ -827,7 +835,7 @@ def LessonAssessment(LessID,date,AssesType,role,save,model=None):
             {"role": "system", "content": f"You are an expert producing reports. {ENGLISH_ONLY}"},
             {"role": "user", "content": f"{prompt}"},
         ]
-        text = _chat_text(message, 400, model)
+        text = _chat_text(message, _SUMMARY_WORKER_TOKENS, model)
         print(f"--- lesson {i + 1}/{number_of_Less_Assessments} done ---")
         return text
 
@@ -848,7 +856,7 @@ def LessonAssessment(LessID,date,AssesType,role,save,model=None):
             }
         ]
         # # Make an API request to generate the report (retry + null-safe)
-        response_message = _chat_text(message, 1000, model)
+        response_message = _chat_text(message, _FINAL_REPORT_TOKENS, model)
         print(f"Finale Report Assessment:----------------------")
     else:
         response_message = "No Lesson Found."
@@ -946,7 +954,7 @@ def classAssessment(classID,date,AssesType,role,save,model=None):
             {"role": "system", "content": f"You are an expert producing reports. {ENGLISH_ONLY}"},
             {"role": "user", "content": f"{prompt}"},
         ]
-        text = _chat_text(message, 400, model)
+        text = _chat_text(message, _SUMMARY_WORKER_TOKENS, model)
         print(f"--- class {i + 1}/{number_of_Less_Assessments} done ---")
         return text
 
@@ -967,7 +975,7 @@ def classAssessment(classID,date,AssesType,role,save,model=None):
             }
         ]
         # # Make an API request to generate the report (retry + null-safe)
-        response_message = _chat_text(message, 2000, model)
+        response_message = _chat_text(message, _FINAL_REPORT_TOKENS, model)
         print(f"Finale Report Assessment:----------------------")
     else:
         response_message = "No Lesson Found."
@@ -2251,6 +2259,63 @@ def get_group_options():
             label += f" ({schedule})"
         options.append({"id": code, "label": label})
     return options
+
+
+def get_workable_sets():
+    """Which entities actually have data to work with right now.
+
+    Returns {"students": set, "groups": set, "lessons": set}:
+    - students: appear in ANY assessment sheet or a saved Student report
+    - groups:   have LessonAssessment rows or a saved Class report
+    - lessons:  the 2-letter prefix of any workable group, or a saved Lesson report
+
+    The UI uses this to hide dead-end picker options (a report cannot be
+    generated without data). Nothing is deleted — as real form data arrives,
+    entries become workable automatically.
+    """
+    _connect_sheets()
+    students, groups, lessons = set(), set(), set()
+    for ws in (PreAssesment, FoAssesment, SelfAssessment, PostAssessment):
+        try:
+            rows = ws.get_all_values()
+        except Exception:
+            continue
+        if not rows or "Student ID" not in rows[0]:
+            continue
+        i = rows[0].index("Student ID")
+        students |= {r[i].strip() for r in rows[1:] if len(r) > i and r[i].strip()}
+    try:
+        la_rows = gc.open('LessonAssessment').sheet1.get_all_values()
+        hL = la_rows[0] if la_rows else []
+        col = next((c for c in ("Group code", "Κωδικός Μαθήματος") if c in hL), None)
+        if col:
+            i = hL.index(col)
+            groups |= {r[i].strip() for r in la_rows[1:] if len(r) > i and r[i].strip()}
+    except Exception:
+        pass
+    try:
+        rf_rows = sh.sheet1.get_all_values()
+        hR = rf_rows[0] if rf_rows else []
+        if "Assessment type" in hR and "ID" in hR:
+            i_t, i_id = hR.index("Assessment type"), hR.index("ID")
+            for r in rf_rows[1:]:
+                if len(r) <= max(i_t, i_id):
+                    continue
+                rtype, eid = r[i_t].strip(), r[i_id].strip()
+                if not eid:
+                    continue
+                if rtype == "Student":
+                    students.add(eid)
+                elif rtype == "Class":
+                    groups.add(eid)
+                elif rtype == "Lesson":
+                    lessons.add(eid)
+    except Exception:
+        pass
+    for g in groups:
+        if len(g) >= 2:
+            lessons.add(g[:2])
+    return {"students": students, "groups": groups, "lessons": lessons}
 
 
 def process_all_students(student_name,date, AssesType, role, save, model=None):

@@ -78,7 +78,10 @@ gcloud projects add-iam-policy-binding $PROJECT --member="serviceAccount:$RUNTIM
 
 # ---------- 6. Deploy (builds from source via Cloud Build) ----------
 Step "Deploying $SERVICE to $REGION (first build takes a few minutes)"
-$ENV_STRING = "OPENROUTER_API_KEY=$($envVars['OPENROUTER_API_KEY']),OPENROUTER_MODEL=$($envVars['OPENROUTER_MODEL']),FLASK_SECRET_KEY=$($envVars['FLASK_SECRET_KEY']),APP_PASSWORD=$($envVars['APP_PASSWORD']),FLASK_DEBUG=0"
+# Sandbox / Educator-Override flags come from .env (default off in production).
+$SANDBOX_MODE = if ($envVars['SANDBOX_MODE']) { $envVars['SANDBOX_MODE'] } else { '0' }
+$REQUIRE_APPROVAL = if ($envVars['REQUIRE_APPROVAL']) { $envVars['REQUIRE_APPROVAL'] } else { '0' }
+$ENV_STRING = "OPENROUTER_API_KEY=$($envVars['OPENROUTER_API_KEY']),OPENROUTER_MODEL=$($envVars['OPENROUTER_MODEL']),FLASK_SECRET_KEY=$($envVars['FLASK_SECRET_KEY']),APP_PASSWORD=$($envVars['APP_PASSWORD']),FLASK_DEBUG=0,SANDBOX_MODE=$SANDBOX_MODE,REQUIRE_APPROVAL=$REQUIRE_APPROVAL"
 gcloud run deploy $SERVICE --source . --region $REGION --allow-unauthenticated --set-env-vars $ENV_STRING --set-secrets "GOOGLE_SERVICE_ACCOUNT_JSON=${SECRET}:latest" | Out-Host
 if ($LASTEXITCODE -ne 0) { Write-Host "Deploy failed." -ForegroundColor Red; exit 1 }
 

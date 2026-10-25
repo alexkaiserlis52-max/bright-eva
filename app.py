@@ -123,6 +123,14 @@ def form_options():
                 "lessons": get_lesson_options(),
                 "groups": get_group_options(),
             }
+            # Entities with actual data (assessments/reports) — the UI hides
+            # the rest as dead ends. Fail-open: if this breaks, no key is sent
+            # and the UI simply shows everything.
+            try:
+                workable = get_workable_sets()
+                _options_cache["data"]["workable"] = {k: sorted(v) for k, v in workable.items()}
+            except Exception as e:
+                print(f"Could not compute workable sets: {e}")
             _options_cache["ts"] = now
         except Exception as e:
             print(f"Could not load form options: {e}")

@@ -668,12 +668,13 @@
     </div>
     <table class="mini-table">
         <tr><th>Page</th><th>What it does</th></tr>
-        <tr><td><b>Student / Lesson / Class Report</b></td><td>The three generators on the home page. Pick an ID, a focus (“what to assess”), a narrator voice — get a grounded report. “Run for all students” batch-generates, one pipeline run each.</td></tr>
+        <tr><td><b>Student / Lesson / Class Report</b></td><td>The three generators on the home page. Pick an ID, a focus (“what to assess”), a narrator voice — get a grounded report. “Run for all students” batch-generates, one pipeline run each. The pickers list only entries that already have assessment data (a report cannot be generated without it); the “show all” switch on the hero reveals every registered entry — nothing is ever deleted, entries appear automatically once their form data arrives.</td></tr>
         <tr><td><b>ASK ME</b></td><td>Smart queries over <em>saved</em> reports. Write the request in plain words (“a lesson plan for the class’s biggest weaknesses”, “adapt the lesson for this class”) — on Auto, E.V.A. routes it to the right pipeline: create or modify a lesson plan, “Find Solution” (one student vs. the class), or a general grounded answer. Class, lesson and student filters are all optional and simply narrow the evidence.</td></tr>
         <tr><td><b>Chat</b></td><td>Free-form questions. E.V.A. calls data tools (student profile, group climate, lesson content, comparisons) and answers strictly from what they return — every tool call is shown as a chip, and each answer links to its full pipeline trace.</td></tr>
         <tr><td><b>Style Studio</b></td><td>Teach the system your report style: paste an example report and/or plain instructions. One AI call distills them into a ≤250-word style profile; you review, edit and save it. Examples are anonymized before distillation and never stored.</td></tr>
         <tr><td><b>Pipeline</b></td><td>The glass box: every run with its data sources, masks, prompts, critic verdicts, memory writes, cost, timing and automated risk signals — plus a “Register a risk” form for human reviewers.</td></tr>
         <tr><td><b>Risk Register</b></td><td>The living register: ten baseline risks (R1–R10) with their mitigations and the regulations they answer to — plus every observation reviewers registered on real traces, and unlisted risks gathering as candidates for the next revision.</td></tr>
+
     </table>
 </div>
 

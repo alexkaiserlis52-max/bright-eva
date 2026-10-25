@@ -240,6 +240,17 @@ body::before {
     border: 1px solid rgba(61, 220, 151, 0.3);
 }
 
+/* "Only entries with data" toggle on the Assessment Hub hero */
+.hero .hero-filter {
+    display: flex;
+    margin-top: 12px;
+    font-size: 12.5px;
+}
+
+.hero .hero-filter .opt-tag {
+    margin-left: 8px;
+}
+
 /* ============================ CARDS ============================ */
 
 .cards {
@@ -1190,3 +1201,5 @@ a.chat-tool-chip:hover { border-color: var(--border-glow); color: var(--text-mai
     border-radius: 4px;
     display: inline-block;
 }
+
+
