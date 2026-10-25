@@ -1,0 +1,143 @@
+{
+    "Main Title": "Getting Started Project, part A: Milo, the Science Rover ",
+    "Objective": "Discover ways that scientists and engineers can use rovers to explore places where humans cannot go.",
+    "Grade Level": "Grades 1-5",
+    "Duration": "30-45 minutes",
+    "Difficulty Level": "Beginner",
+    "Materials Needed": [
+        "WeDo 2.0 kit",
+        "Computers/Tablets with WeDo 2.0 Software",
+        "Building instructions for Milo",
+        "Video for project introduction"
+    ],
+    "Key Vocabulary": [
+        "Rover",
+        "Sensor",
+        "Smarthub",
+        "Motor",
+        "Programming"
+    ],
+    "Preparation": {
+        "Duration": "15-30 minutes",
+        "Steps": [
+            "Read the general preparation in the 'Classroom Management' chapter.",
+            "Read about the project to have a good idea of what to do.",
+            "Define how to introduce this project: use the video provided in the project in the WeDo 2.0 Software or use material of your own choice.",
+            "Determine the end result of this project: the parameters to present and produce the document.",
+            "Make sure timing allows for expectations to be met."
+        ],
+        "Important": "It is recommended to complete the four Getting Started Projects in a single sequence or complete them before other projects to provide students ample time to explore the materials."
+    },
+    "Getting Started Projects Timing": {
+        "Part A": "Milo, the Science Rover: 40 min.",
+        "Part B": "Milo’s Motion Sensor: 15 min.",
+        "Part C": "Milo’s Tilt Sensor: 15 min.",
+        "Part D": "Collaborate: 15 min."
+    },
+    "Phases": {
+        "Explore": {
+            "Duration": "10 minutes",
+            "Steps": [
+                "Use the introductory video to set the stage for the project.",
+                "Discuss how scientists and engineers explore remote places using rovers, submarines, and drones.",
+                "Discuss the concept of learning from failure."
+            ],
+            "Discussion Questions": [
+                "What do scientists and engineers do when they cannot go where they want to explore?",
+                "How do scientists and engineers develop solutions to these challenges?"
+            ]
+        },
+        "Create": {
+            "Duration": "20 minutes",
+            "Steps": [
+                "Build Milo, the Science Rover following the building instructions.",
+                "Ensure everyone can connect the motor to the Smarthub and connect the Smarthub to the device.",
+                "Program Milo to start the motor at power 8, go in one direction for 2 seconds, and then stop.",
+                "Allow students to change the program parameters and discover new features, such as adding sound."
+            ],
+            "Suggestions": [
+                "Guide students to the Design Library for inspiration on other program strings they can explore."
+            ]
+        },
+        "Share": {
+            "Duration": "10 minutes",
+            "Steps": [
+                "Have a short discussion about scientific and engineering instruments.",
+                "Have students describe how science rovers are helpful to humans.",
+                "Introduce the Documentation tool.",
+                "Have students take a team picture with their model."
+            ]
+        }
+    },
+    "Important Notes": [
+        "Make sure everyone can connect the motor to the Smarthub and can connect the Smarthub to the device."
+    ],
+    "Suggestions": [
+        "Give students time to change the parameters of this program string.",
+        "Let them discover new features, such as adding sound.",
+        "Use this opportunity to guide students to the Design Library so they can gain inspiration about other program strings they can explore."
+    ],
+    "Additional Phases": {
+        "Preparation": {
+            "Duration": "15-30 minutes",
+            "Steps": [
+                "Read the general preparation in the 'Classroom Management' chapter.",
+                "Read about the project so you have a good idea of what to do.",
+                "Define how you want to introduce this project: Use the video provided in the project in the WeDo 2.0 Software, or use material of your own choice.",
+                "Determine the end result of this project: the parameters to present and produce the document.",
+                "Make sure timing allows for expectations to be met."
+            ],
+            "Important": "It is recommended that you complete the four Getting Started Projects in a single sequence. If not, then it is preferable that you complete these prior to continuing on to other projects in order to provide students ample time to explore the materials.",
+            "Approximate timing for the four Getting Started Projects is": [
+                "Part A: Milo, the Science Rover: 40 min.",
+                "Part B: Milo’s Motion Sensor: 15 min.",
+                "Part C: Milo’s Tilt Sensor: 15 min.",
+                "Part D: Collaborate: 15 min."
+            ]
+        },
+        "Explore": {
+            "Duration": "10 minutes",
+            "Steps": [
+                "The introductory video may set the stage for the following ideas to be reviewed and discussed with students for this project.",
+                "Scientists and engineers have always challenged themselves to explore remote places and make new discoveries. To succeed in this journey, they have designed spacecraft, rovers, satellites, and robots to help them see and collect data about these new places. They have succeeded many times and failed many times, too.",
+                "Remember that failure is a chance to learn more. Use the following ideas to start thinking like a scientist:",
+                "Scientists send rovers to Mars.",
+                "They use submarines in water.",
+                "They fly drones into volcanoes."
+            ],
+            "Questions for discussion": [
+                "What do scientists and engineers do when they cannot go where they want to explore?",
+                "Scientists and engineers take these situations as challenges they want to solve. With proper resources and commitment, they will develop prototypes as possible solutions and ultimately choose the best option."
+            ]
+        },
+        "Create": {
+            "Duration": "20 minutes",
+            "Steps": [
+                "Build and program Milo",
+                "Students should follow the building instructions to build Milo, the Science Rover.",
+                "Build Milo, the Science Rover. This model will give students a “first build” experience with WeDo 2.0.",
+                "VIEW BUILDING INSTRUCTIONS",
+                "Make sure everyone can connect the motor to the Smarthub and can connect the Smarthub to the device.",
+                "Program Milo. This program will start the motor at power 8, go in one direction for 2 sec., and then stop.",
+                "The motor can be started in both directions, stopped and turned at different speeds, and activated for a specific amount of time (specified in seconds)."
+            ],
+            "Suggestion": [
+                "Give students time to change the parameters of this program string.",
+                "Let them discover new features, such as adding sound.",
+                "Use this opportunity to guide students to the Design Library so they can gain inspiration about other program strings they can explore."
+            ]
+        },
+        "Share": {
+            "Duration": "10 minutes",
+            "Steps": [
+                "Present",
+                "Before you move on to the next part of the Getting Started Project, allow the students to express themselves:",
+                "Have a short discussion with your students about scientific and engineering instruments.",
+                "Have your students describe how science rovers are helpful to humans.",
+                "Document",
+                "Have students discover the use of the Documentation tool.",
+                "Have them take a team picture with their model."
+            ]
+        }
+    }
+}

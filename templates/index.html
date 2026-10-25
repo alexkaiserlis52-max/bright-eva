@@ -1,0 +1,327 @@
+{% extends "base.html" %}
+{% block title %}Assessment Hub{% endblock %}
+{% block content %}
+
+<div class="hero">
+    <h1>Assessment Hub</h1>
+    <p>Generate intelligent progress reports from your assessment forms — fast, anonymized and secure.</p>
+    <span class="badge-privacy" data-tip="A deterministic anonymizer masks every name, email and phone number before any prompt is built. The AI only ever sees pseudonymous IDs like demo02.">
+        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+        GDPR — names never leave the system
+    </span>
+</div>
+
+<div class="cards">
+    <!-- ============ REPORT BY STUDENT ============ -->
+    <section class="card" id="report-by-student">
+        <div class="card-head">
+            <div class="card-icon">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8" r="4"/><path d="M4 21c0-4 3.6-7 8-7s8 3 8 7"/></svg>
+            </div>
+            <div>
+                <h2 class="card-title">Student Report</h2>
+                <p class="card-sub">Individual progress report from all assessments</p>
+            </div>
+        </div>
+        <form action="/view_report" method="POST" data-eva-loading>
+            <div class="field-row">
+                <div class="field">
+                    <label for="student-name" class="tip" data-tip="Pseudonymous ID from the Students sheet (e.g. demo02). Real names are never used in this app — the anonymizer masks them before any AI call.">Student ID</label>
+                    <select id="student-name" name="student-name" required>
+                        <option value="" disabled selected>Loading students…</option>
+                    </select>
+                </div>
+                <div class="field">
+                    <label for="assessment-date" class="tip" data-tip="The date stamped on the report and used to file it in the ReportsFile archive.">Assessment Date</label>
+                    <input type="date" id="assessment-date" name="assessment-date" required>
+                </div>
+            </div>
+            <div class="field">
+                <label for="what-to-assess" class="tip" data-tip="Your focus instruction to the AI — it becomes the central question the report must answer.">What to assess</label>
+                <textarea id="what-to-assess" name="what-to-assess" placeholder="e.g. Overall progress in algorithmic thinking and collaboration" required></textarea>
+            </div>
+            <div class="field">
+                <label for="stu_role" class="tip" data-tip="The persona the AI writes in (e.g. educator addressing parents). Shapes tone and audience — never the facts.">Narrator role</label>
+                <textarea id="stu_role" class="role" name="stu_role" placeholder="e.g. An experienced robotics educator addressing parents" required></textarea>
+            </div>
+            <label class="switch-row" data-tip="Off: the report is only shown on screen. On: it is archived to ReportsFile and feeds Smart Memory. With Educator Override active, saving always waits for your explicit approval.">
+                <input type="checkbox" id="save_checkbox" name="save_checkbox">
+                <span class="switch-track"></span>
+                <span class="switch-label">Save to ReportsFile</span>
+            </label>
+            <button type="submit" class="btn btn-primary" name="report-type" value="stu_teacher"
+                    data-tip="Runs the full pipeline: fetch sheets → anonymize → AI summaries → critic gate → final report. 30–90 seconds.">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3l1.9 5.1L19 10l-5.1 1.9L12 17l-1.9-5.1L5 10l5.1-1.9z"/></svg>
+                Generate Report
+            </button>
+            <button type="submit" class="btn btn-ghost" name="report-type" value="all_students"
+                    data-tip="Generates one report per student, sequentially — one full pipeline run each, so this takes several minutes.">Run for all students</button>
+        </form>
+    </section>
+
+    <!-- ============ REPORT BY LESSON ============ -->
+    <section class="card" id="report-by-lesson">
+        <div class="card-head">
+            <div class="card-icon">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20V4H6.5A2.5 2.5 0 0 0 4 6.5v13z"/><path d="M8 8h8M8 12h6"/></svg>
+            </div>
+            <div>
+                <h2 class="card-title">Lesson Report</h2>
+                <p class="card-sub">How a lesson performed over time</p>
+            </div>
+        </div>
+        <form action="/view_report" method="POST" data-eva-loading>
+            <div class="field-row">
+                <div class="field">
+                    <label for="lesson-name" class="tip" data-tip="Lesson code from the school's sheets (e.g. ΜΒ). Codes are data keys and stay in Greek — only the report prose is in English.">Lesson ID</label>
+                    <select id="lesson-name" name="lesson-name" required>
+                        <option value="" disabled selected>Loading lessons…</option>
+                    </select>
+                </div>
+                <div class="field">
+                    <label for="assessment-date-lesson" class="tip" data-tip="The date stamped on the report and used to file it in the ReportsFile archive.">Assessment Date</label>
+                    <input type="date" id="assessment-date-lesson" name="assessment-date-lesson" required>
+                </div>
+            </div>
+            <div class="field">
+                <label for="what-to-assess-lesson" class="tip" data-tip="Your focus instruction to the AI — it becomes the central question the report must answer.">What to assess</label>
+                <textarea id="what-to-assess-lesson" name="what-to-assess-lesson" placeholder="e.g. Lesson effectiveness and difficulties encountered" required></textarea>
+            </div>
+            <div class="field">
+                <label for="less_role" class="tip" data-tip="The persona the AI writes in (e.g. head of studies). Shapes tone and audience — never the facts.">Narrator role</label>
+                <textarea id="less_role" class="role" name="less_role" placeholder="e.g. A head of studies evaluating the lesson structure" required></textarea>
+            </div>
+            <label class="switch-row" data-tip="Off: the report is only shown on screen. On: it is archived to ReportsFile and feeds Smart Memory. With Educator Override active, saving always waits for your explicit approval.">
+                <input type="checkbox" id="save_checkbox_lesson" name="save_checkbox">
+                <span class="switch-track"></span>
+                <span class="switch-label">Save to ReportsFile</span>
+            </label>
+            <button type="submit" class="btn btn-primary" name="report-type" value="less_teacher"
+                    data-tip="Runs the full pipeline: fetch sheets → anonymize → AI summaries → critic gate → final report. 30–90 seconds.">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3l1.9 5.1L19 10l-5.1 1.9L12 17l-1.9-5.1L5 10l5.1-1.9z"/></svg>
+                Generate Report
+            </button>
+        </form>
+    </section>
+
+    <!-- ============ REPORT BY GROUP ============ -->
+    <section class="card" id="report-by-group">
+        <div class="card-head">
+            <div class="card-icon">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="9" cy="8" r="3.5"/><path d="M2.5 20c0-3.5 3-6 6.5-6s6.5 2.5 6.5 6"/><circle cx="17" cy="9" r="2.5"/><path d="M16 14.5c2.8.4 5 2.3 5 5.5"/></svg>
+            </div>
+            <div>
+                <h2 class="card-title">Class Report</h2>
+                <p class="card-sub">Overall picture of a class group</p>
+            </div>
+        </div>
+        <form action="/view_report" method="POST" data-eva-loading>
+            <div class="field-row">
+                <div class="field">
+                    <label for="class-group" class="tip" data-tip="Class group code from the school's sheets (e.g. ΜΓ1). Codes are data keys and stay in Greek — only the report prose is in English.">Class Group ID</label>
+                    <select id="class-group" name="class-group" required>
+                        <option value="" disabled selected>Loading class groups…</option>
+                    </select>
+                </div>
+                <div class="field">
+                    <label for="assessment-date-group" class="tip" data-tip="The date stamped on the report and used to file it in the ReportsFile archive.">Assessment Date</label>
+                    <input type="date" id="assessment-date-group" name="assessment-date-group" required>
+                </div>
+            </div>
+            <div class="field">
+                <label for="what-to-assess-group" class="tip" data-tip="Your focus instruction to the AI — it becomes the central question the report must answer.">What to assess</label>
+                <textarea id="what-to-assess-group" name="what-to-assess-group" placeholder="e.g. Class progress and improvement suggestions" required></textarea>
+            </div>
+            <div class="field">
+                <label for="group_role" class="tip" data-tip="The persona the AI writes in (e.g. educator briefing the director). Shapes tone and audience — never the facts.">Narrator role</label>
+                <textarea id="group_role" class="role" name="group_role" placeholder="e.g. An educator briefing the school director" required></textarea>
+            </div>
+            <label class="switch-row" data-tip="Off: the report is only shown on screen. On: it is archived to ReportsFile and feeds Smart Memory. With Educator Override active, saving always waits for your explicit approval.">
+                <input type="checkbox" id="save_checkbox_group" name="save_checkbox">
+                <span class="switch-track"></span>
+                <span class="switch-label">Save to ReportsFile</span>
+            </label>
+            <button type="submit" class="btn btn-primary" name="report-type" value="group_teacher"
+                    data-tip="Runs the full pipeline: fetch sheets → anonymize → AI summaries → critic gate → final report. 30–90 seconds.">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3l1.9 5.1L19 10l-5.1 1.9L12 17l-1.9-5.1L5 10l5.1-1.9z"/></svg>
+                Generate Report
+            </button>
+        </form>
+    </section>
+
+    <!-- ============ ASK ME ============ -->
+    <section class="card wide" id="ask-me">
+        <div class="card-head">
+            <div class="card-icon">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12a8 8 0 0 1-8 8H5l-2 2V12a8 8 0 0 1 8-8h2a8 8 0 0 1 8 8z"/><path d="M9 11h6M9 15h4"/></svg>
+            </div>
+            <div>
+                <h2 class="card-title">ASK ME</h2>
+                <p class="card-sub">Ask for anything over the saved reports — E.V.A. picks the right action and evidence itself</p>
+            </div>
+        </div>
+        <form action="/view_report" method="POST" data-eva-loading>
+            <div class="field">
+                <label for="what-to-assess-question" class="tip" data-tip="Write your request in plain words — a lesson plan, an adaptation, a diagnosis, a comparison, anything. On Auto, E.V.A. reads it and decides which pipeline serves it best.">What do you need?</label>
+                <textarea id="what-to-assess-question" name="what-to-assess-question" rows="3" placeholder="e.g. Create a lesson plan that works on the children's biggest weaknesses" required></textarea>
+                <div class="ask-chips">
+                    <button type="button" class="chip ask-chip">Create a lesson plan targeting the class's biggest weaknesses</button>
+                    <button type="button" class="chip ask-chip">Adapt the next lesson to the students of this class</button>
+                    <button type="button" class="chip ask-chip">Find a solution for one student's difficulty</button>
+                    <button type="button" class="chip ask-chip">Which difficulties keep coming up across the reports?</button>
+                </div>
+            </div>
+            <div class="field-row">
+                <div class="field">
+                    <label for="action-choice" class="tip" data-tip="Auto: E.V.A. reads your request and routes it to the right pipeline. Override only if you want to force a specific one — Create/Modify Lesson Plan, Find Solution (one student vs. the class), or a general answer over the reports.">Action</label>
+                    <select id="action-choice" name="action-choice" required>
+                        <option value="auto" selected>Auto — let E.V.A. decide</option>
+                        <option value="create_lesson_plan">Create Lesson Plan</option>
+                        <option value="modify_lesson_plan">Modify Lesson Plan</option>
+                        <option value="find_solution">Find Solution</option>
+                        <option value="general_query">Answer a question over the reports</option>
+                    </select>
+                    <span class="field-hint">Auto is recommended — the routing decision is recorded in the pipeline trace.</span>
+                </div>
+                <div class="field">
+                    <label for="question_role" class="tip" data-tip="The persona the AI writes in (e.g. strategy advisor). Shapes tone and audience — never the facts.">Narrator role</label>
+                    <textarea id="question_role" class="role" name="question_role" placeholder="e.g. An educational strategy advisor">An experienced educational advisor</textarea>
+                </div>
+            </div>
+            <div class="field-row">
+                <div class="field">
+                    <label for="askme-group" class="tip" data-tip="Optional. Narrow the evidence to one class group: its class reports, its lessons and only its students' reports feed the answer. Leave empty to search the whole archive.">Class group <span class="opt-tag">optional</span></label>
+                    <select id="askme-group" name="askme-group"></select>
+                </div>
+                <div class="field">
+                    <label for="askme-lesson" class="tip" data-tip="Optional. Narrow the evidence to one lesson's saved reports. Leave empty to search every lesson.">Lesson <span class="opt-tag">optional</span></label>
+                    <select id="askme-lesson" name="askme-lesson"></select>
+                </div>
+            </div>
+            <div class="field">
+                <label for="class-question-picker" class="tip" data-tip="Optional. Only Find Solution needs students: the first one you pick is the student under examination, the rest are the comparison group. For any other action, picking students simply narrows the evidence to them.">Students <span class="opt-tag">optional</span></label>
+                <select id="class-question-picker" multiple size="4"></select>
+                <input type="hidden" id="class-question" name="class-question">
+                <span class="field-hint">Leave empty to search the whole scope. For Find Solution, the first student you pick is the one under examination.</span>
+            </div>
+            <input type="hidden" id="assessment-date-question" name="assessment-date-question">
+            <label class="switch-row" data-tip="Off: the output is only shown on screen. On: it is archived to ReportsFile. With Educator Override active, saving always waits for your explicit approval.">
+                <input type="checkbox" id="save_checkbox_askme" name="save_checkbox">
+                <span class="switch-track"></span>
+                <span class="switch-label">Save to ReportsFile</span>
+            </label>
+            <button type="submit" class="btn btn-primary" name="report-type" value="question_teacher"
+                    data-tip="Routes your request, gathers the saved reports in scope, anonymizes, reasons and answers. 30–90 seconds.">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3l1.9 5.1L19 10l-5.1 1.9L12 17l-1.9-5.1L5 10l5.1-1.9z"/></svg>
+                Run
+            </button>
+        </form>
+    </section>
+</div>
+
+<details class="log-block">
+    <summary data-tip="A simple local activity log of this installation — who generated what, when. Separate from the detailed pipeline traces.">App usage log</summary>
+    <ul>
+        {% for entry in log or [] %}
+        <li>{{ entry }}</li>
+        {% endfor %}
+    </ul>
+</details>
+
+<script>
+// ---------- ID dropdown pickers (students / lessons / class groups) ----------
+// Lists come from /api/options (live from the sheets, cached 5 min server-side).
+// If the endpoint fails, the selects degrade to plain text inputs.
+(async function () {
+    function fallbackToText(id, placeholder, required = true) {
+        const sel = document.getElementById(id);
+        if (!sel) return;
+        const inp = document.createElement('input');
+        inp.type = 'text';
+        inp.id = id;
+        inp.name = sel.name;
+        inp.placeholder = placeholder;
+        inp.required = required;
+        sel.replaceWith(inp);
+    }
+
+    let data;
+    try {
+        const res = await fetch('/api/options');
+        data = await res.json();
+        if (!data || !Array.isArray(data.students) || data.error) throw new Error(data && data.error || 'bad payload');
+    } catch (e) {
+        console.warn('ID lists unavailable — using plain text inputs.', e);
+        fallbackToText('student-name', 'e.g. test1');
+        fallbackToText('lesson-name', 'e.g. ΜΒ');
+        fallbackToText('class-group', 'e.g. ΜΒ1');
+        fallbackToText('askme-group', 'All classes — or type a group code', false);
+        fallbackToText('askme-lesson', 'All lessons — or type a lesson ID', false);
+        return;
+    }
+
+    function fill(id, items, placeholder) {
+        const sel = document.getElementById(id);
+        if (!sel) return;
+        sel.innerHTML = '';
+        if (placeholder) {
+            const ph = document.createElement('option');
+            ph.value = ''; ph.textContent = placeholder; ph.disabled = true; ph.selected = true;
+            sel.appendChild(ph);
+        }
+        items.forEach(it => {
+            const o = document.createElement('option');
+            o.value = it.id;
+            o.textContent = it.label;
+            sel.appendChild(o);
+        });
+    }
+
+    fill('student-name', data.students, 'Select a student…');
+    fill('lesson-name', data.lessons, 'Select a lesson…');
+    fill('class-group', data.groups, 'Select a class group…');
+
+    // ASK ME optional scope pickers: a reselectable "everything" first option.
+    function fillWithAllOption(id, items, allLabel) {
+        fill(id, items, null);
+        const sel = document.getElementById(id);
+        if (!sel) return;
+        const o = document.createElement('option');
+        o.value = '';
+        o.textContent = allLabel;
+        sel.insertBefore(o, sel.firstChild);
+        sel.value = '';
+    }
+    fillWithAllOption('askme-group', data.groups, 'All classes (whole archive)');
+    fillWithAllOption('askme-lesson', data.lessons, 'All lessons (whole archive)');
+
+    // ASK ME: multi-select -> comma-separated hidden field, keeping PICK order
+    // (the first picked student is the focus of Find Solution).
+    const picker = document.getElementById('class-question-picker');
+    const hidden = document.getElementById('class-question');
+    if (picker && hidden) {
+        fill('class-question-picker', data.students, null);
+        const order = [];
+        picker.addEventListener('change', () => {
+            const selected = [...picker.selectedOptions].map(o => o.value).filter(Boolean);
+            const kept = order.filter(v => selected.includes(v));
+            const added = selected.filter(v => !kept.includes(v));
+            order.length = 0;
+            order.push(...kept, ...added);
+            hidden.value = order.join(', ');
+        });
+    }
+
+    // ASK ME example chips: one click drops the suggestion into the request box.
+    const askBox = document.getElementById('what-to-assess-question');
+    document.querySelectorAll('.ask-chip').forEach(chip => {
+        chip.addEventListener('click', () => {
+            if (!askBox) return;
+            askBox.value = chip.textContent.trim();
+            askBox.focus();
+        });
+    });
+})();
+</script>
+
+{% endblock %}

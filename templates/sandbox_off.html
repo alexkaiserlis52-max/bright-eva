@@ -1,0 +1,10 @@
+{% extends "base.html" %}
+{% block title %}Risk Lab disabled{% endblock %}
+{% block content %}
+<div class="hero">
+    <h1>Risk Lab is disabled</h1>
+    <p>The interactive sandbox experiments are turned off on this deployment.
+       Set <span class="mono">SANDBOX_MODE=1</span> in the environment to enable them.</p>
+</div>
+<a class="btn btn-ghost btn-sm" href="{{ url_for('main') }}">← Back to hub</a>
+{% endblock %}

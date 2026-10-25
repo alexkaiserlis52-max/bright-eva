@@ -1,0 +1,61 @@
+{% extends "base.html" %}
+{% block title %}Pipeline Traces{% endblock %}
+{% block content %}
+
+<div class="hero">
+    <h1>Pipeline Traces</h1>
+    <p>Every report generation and chat run leaves a complete, inspectable trail:
+       what data was pulled from where, what the anonymizer masked, the exact prompts
+       sent to the model, what the critic said, and what was saved. Pick a run to open the glass box.</p>
+    <span class="badge-privacy">🔍 Glass-box transparency — all data on this page is synthetic sandbox data</span>
+</div>
+
+{% if notice %}
+<div class="card wide" style="padding: 12px 18px; margin-bottom: 16px;">
+    <p style="margin: 0;">🧹 {{ notice }}</p>
+</div>
+{% endif %}
+
+{% if runs %}
+<div class="card wide" style="padding: 12px 18px; margin-bottom: 16px; display:flex; align-items:center; gap:12px; flex-wrap:wrap;">
+    <span class="card-sub" style="margin:0" data-tip="Delete stored traces — useful before a demo, or to drop test and experiment runs. Human risk observations in the register are NOT deleted.">Housekeeping:</span>
+    <form method="POST" action="{{ url_for('pipeline_clear') }}" style="display:flex; gap:10px; align-items:center; margin:0"
+          onsubmit="return confirm('Delete the selected traces? This cannot be undone.');">
+        <select name="kind" data-tip="Choose what to remove: everything, or only one run kind">
+            <option value="">All traces ({{ runs | length }})</option>
+            <option value="report">Report runs only</option>
+            <option value="chat">Chat runs only</option>
+            <option value="sandbox">Sandbox / experiment runs only</option>
+        </select>
+        <button type="submit" class="btn btn-danger-ghost btn-sm" style="margin-top:0" data-tip="Permanently deletes the matching trace files from disk">🧹 Clean up</button>
+    </form>
+</div>
+{% endif %}
+
+{% if not runs %}
+<div class="card wide" style="text-align:center; padding:50px 24px;">
+    <p style="color:var(--text-muted); margin:0;">No traces yet — generate a report or ask the chat something, then come back.</p>
+</div>
+{% else %}
+<div class="trace-list">
+    {% for r in runs %}
+    <a class="trace-row" href="{{ url_for('pipeline_detail', run_id=r.run_id) }}">
+        <span class="trace-dot {{ 'ok' if r.status == 'ok' else 'err' }}" data-tip="{{ 'Run completed without errors' if r.status == 'ok' else 'Something failed in this run — open it for the error event' }}"></span>
+        <span class="chip {{ 'brand' if r.kind == 'report' else '' }}" data-tip="{{ 'A report-generation run' if r.kind == 'report' else 'A chat-conversation run' }}">{{ r.kind }}</span>
+        <span class="trace-label">{{ r.label }}</span>
+        <span class="trace-meta">
+            {% if r.summary %}
+            <span class="chip" data-tip="How many AI calls this run made">⚡ {{ r.summary.llm_calls }} LLM</span>
+            {% if r.summary.critic_fails %}<span class="chip chip-warn" data-tip="The critic gate rejected a draft this many times — each rejection triggered a regeneration with feedback">critic ✕{{ r.summary.critic_fails }}</span>{% endif %}
+            {% if r.summary.alerts %}<span class="chip chip-danger" data-tip="Early-warning alerts fired — the Smart Memory comparison spotted a worsening trajectory or new risk flags">⚠ {{ r.summary.alerts }} alert{{ 's' if r.summary.alerts > 1 }}</span>{% endif %}
+            <span class="chip" data-tip="Total wall-clock duration of the run">{{ (r.summary.duration_ms / 1000) | round(1) }}s</span>
+            {% endif %}
+            <span class="chip mono" data-tip="The OpenRouter model that powered this run">{{ r.model }}</span>
+            <span class="trace-date">{{ r.started }}</span>
+        </span>
+    </a>
+    {% endfor %}
+</div>
+{% endif %}
+
+{% endblock %}

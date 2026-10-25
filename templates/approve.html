@@ -1,0 +1,62 @@
+{% extends "base.html" %}
+{% block title %}Educator review{% endblock %}
+{% block content %}
+
+<div class="report-head">
+    <span class="chip brand">Educator Override</span>
+    <span class="chip mono">{{ type }} · {{ name }}</span>
+    <span class="chip">📅 {{ date }}</span>
+    <span class="chip chip-warn" data-tip="This report exists only as a staged draft — the school's sheets are untouched until you explicitly approve. Enforced at the data layer.">dry-run — nothing saved yet</span>
+</div>
+
+<div class="hero" style="margin-bottom:18px">
+    <h1 style="font-size:26px">Your decision is required</h1>
+    <p>The AI generated the report below and it passed through the critic gate,
+       but <b>nothing has been written to the student's record</b>. Human oversight
+       means the final word is yours — approve it, edit it first, or reject it.
+       Whatever you decide is recorded in the run's audit trace.</p>
+</div>
+
+<div class="report-card">
+    <div class="report-body">{{ report }}</div>
+</div>
+
+<div class="cards" style="margin-top:22px">
+    <div class="card">
+        <div class="card-head"><div class="card-icon">✅</div>
+            <div><h2 class="card-title">Approve</h2>
+            <p class="card-sub">save as-is to ReportsFile + memory</p></div>
+        </div>
+        <form method="POST" action="/approve/{{ token }}">
+            <input type="hidden" name="action" value="approve">
+            <button class="btn btn-primary" type="submit" data-tip="Writes the report as-is to ReportsFile and distils it into Smart Memory. Your decision is recorded in the audit trace.">Approve & save</button>
+        </form>
+    </div>
+    <div class="card">
+        <div class="card-head"><div class="card-icon">✏️</div>
+            <div><h2 class="card-title">Edit, then save</h2>
+            <p class="card-sub">your version is re-checked by the critic, you stay the final authority</p></div>
+        </div>
+        <form method="POST" action="/approve/{{ token }}">
+            <input type="hidden" name="action" value="edit">
+            <div class="field"><textarea name="edited_report" rows="8">{{ report }}</textarea></div>
+            <button class="btn btn-primary" type="submit" data-tip="Your text goes back through the critic gate before saving — you stay the final authority, the safety net still applies.">Save my edited version</button>
+        </form>
+    </div>
+    <div class="card">
+        <div class="card-head"><div class="card-icon">🚫</div>
+            <div><h2 class="card-title">Reject</h2>
+            <p class="card-sub">nothing enters the record — the rejection is logged</p></div>
+        </div>
+        <form method="POST" action="/approve/{{ token }}">
+            <input type="hidden" name="action" value="reject">
+            <button class="btn btn-danger-ghost" type="submit" data-tip="Nothing is written anywhere — the rejection itself is logged in the audit trace for accountability.">Reject this report</button>
+        </form>
+    </div>
+</div>
+
+<div class="report-actions" style="margin-top:6px">
+    <a class="btn btn-ghost btn-sm" style="margin-top:0" href="/pipeline/{{ trace_id }}">🔍 View pipeline trace of this run</a>
+</div>
+
+{% endblock %}

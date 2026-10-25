@@ -1,0 +1,24 @@
+{% extends "base.html" %}
+{% block title %}Decision recorded{% endblock %}
+{% block content %}
+
+<div class="hero">
+    {% if decision == 'approved' %}
+    <h1>✅ Report saved</h1>
+    <p>The report for <b>{{ entity }}</b> was written to the record{% if edited %} (your edited version){% endif %}
+       and a distilled insight card was stored in the long-term memory.
+       {% if critic_note %}Note: {{ critic_note }}.{% endif %}
+       Your approval is part of the run's audit trace.</p>
+    {% else %}
+    <h1>🚫 Report rejected</h1>
+    <p>Nothing was written for <b>{{ entity }}</b>. The rejection itself is recorded —
+       human oversight also means being able to say no, and leaving evidence of it.</p>
+    {% endif %}
+</div>
+
+<div class="report-actions">
+    <a class="btn btn-primary btn-sm" href="/pipeline/{{ trace_id }}">🔍 Open the audit trace</a>
+    <a class="btn btn-ghost btn-sm" style="margin-top:0" href="{{ url_for('main') }}">← Back to hub</a>
+</div>
+
+{% endblock %}

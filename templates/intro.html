@@ -1,0 +1,109 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Bright E.V.A. — Evaluation Virtual Assistant</title>
+    <link rel="icon" type="image/svg+xml" href="{{ url_for('static', filename='eva_mark.svg') }}">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;800&display=swap" rel="stylesheet">
+    <style>
+        body, html {
+            height: 100%;
+            margin: 0;
+            font-family: 'Inter', system-ui, sans-serif;
+            color: #F4F2FF;
+            background:
+                radial-gradient(ellipse 60% 45% at 15% 10%, rgba(188, 15, 214, 0.35), transparent 65%),
+                radial-gradient(ellipse 55% 45% at 85% 85%, rgba(23, 84, 250, 0.3), transparent 65%),
+                #0B0620;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            cursor: pointer;
+            overflow: hidden;
+        }
+        .intro {
+            text-align: center;
+            animation: fadeUp 0.9s ease both;
+        }
+        .mark {
+            width: 108px;
+            height: 108px;
+            margin-bottom: 26px;
+            filter: drop-shadow(0 12px 40px rgba(123, 47, 247, 0.65));
+            animation: floaty 3.2s ease-in-out infinite;
+        }
+        h1 {
+            margin: 0 0 6px;
+            font-size: clamp(30px, 5vw, 46px);
+            font-weight: 800;
+            letter-spacing: -0.03em;
+            background: linear-gradient(90deg, #E9B8FF, #9DB4FF);
+            -webkit-background-clip: text;
+            background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+        .tag {
+            font-size: 12px;
+            letter-spacing: 0.22em;
+            text-transform: uppercase;
+            color: #6E6899;
+            margin-bottom: 34px;
+        }
+        #typewriter {
+            font-size: 16.5px;
+            color: #C9C3EE;
+            min-height: 26px;
+        }
+        #typewriter::after {
+            content: "▌";
+            animation: blink 0.8s step-end infinite;
+            color: #BC0FD6;
+        }
+        .skip {
+            margin-top: 44px;
+            font-size: 12px;
+            color: #6E6899;
+            letter-spacing: 0.08em;
+        }
+        @keyframes fadeUp {
+            from { opacity: 0; transform: translateY(18px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        @keyframes floaty {
+            0%, 100% { transform: translateY(0); }
+            50% { transform: translateY(-10px); }
+        }
+        @keyframes blink { 50% { opacity: 0; } }
+    </style>
+</head>
+<body onclick="go()">
+    <div class="intro">
+        <img src="{{ url_for('static', filename='eva_mark.svg') }}" class="mark" alt="Bright E.V.A.">
+        <h1>Bright E.V.A.</h1>
+        <div class="tag">Evaluation Virtual Assistant</div>
+        <div id="typewriter"></div>
+        <div class="skip">click anywhere to continue →</div>
+    </div>
+    <script>
+        const text = "Hello! I'm E.V.A. — let's see the whole picture of learning.";
+        const el = document.getElementById('typewriter');
+        let i = 0;
+        const typer = setInterval(() => {
+            el.textContent = text.slice(0, ++i);
+            if (i >= text.length) clearInterval(typer);
+        }, 45);
+        let gone = false;
+        function go() {
+            if (gone) return;
+            gone = true;
+            document.body.style.transition = 'opacity 0.5s ease';
+            document.body.style.opacity = '0';
+            setTimeout(() => window.location.href = "/main", 480);
+        }
+        setTimeout(go, 4500);
+    </script>
+</body>
+</html>

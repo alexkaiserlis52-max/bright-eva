@@ -1,0 +1,126 @@
+{% extends "base.html" %}
+{% block title %}Risk Register{% endblock %}
+{% block content %}
+
+{# Baseline risks: ref, icon, subtitle, one-line mitigation, framework chips #}
+{% set BASELINE = [
+  ('r1', '🛡️', "children's names/contacts leaving our systems",
+   'A deterministic anonymizer masks every name, email and phone before any prompt is built — the model only ever sees pseudonymous IDs.',
+   ['GDPR Art. 5(1)(c)', 'AI Act Art. 10']),
+  ('r2', '🧐', 'invented scores entering a child\'s record',
+   'A critic gate reviews every report before saving (answered the question? grounded? PII-free?); failure triggers one regeneration, and risk signals flag figures that appear in no prompt.',
+   ['AI Act Art. 15']),
+  ('r3', '🧑‍🏫', 'educators rubber-stamping AI output',
+   'Educator Override: with approval mode on, nothing is saved without an explicit approve / edit / reject — and the decision itself joins the audit trail.',
+   ['AI Act Art. 14']),
+  ('r4', '⚠️', 'a student disengaging over weeks, invisible per-lesson',
+   'Smart Memory distils every saved report into an insight card; a worsening trajectory or new risk flags fire an early warning.',
+   ['proactive duty of care']),
+  ('r5', '🎚️', 'protections over-firing or under-firing',
+   'The anonymizer can over-mask (a registry entry literally named "Μαθητής"; the surname Foster vs the verb) — fixed with stopwords and case-sensitive Latin matching; masking volume is itself a monitored signal.',
+   ['alert fatigue']),
+  ('r6', '💉', 'hostile instructions hidden inside assessment notes',
+   'Notes pass the same scrubber and grounded prompt structure; the injection probe shows exactly what the model received and answered.',
+   ['OWASP LLM01']),
+  ('r7', '🏢', 'silent dependence on one model vendor',
+   'The model is switchable per request via OpenRouter; every run shows the provider, its data-usage terms and a policy link — nothing is taken on faith.',
+   ['data sovereignty']),
+  ('r8', '🧩', 'ID + date + class group triangulating a child',
+   'Pseudonyms are not anonymity in a small class — traces flag the quasi-identifier triad so it stays a conscious, documented trade-off.',
+   ['GDPR Recital 26']),
+  ('r9', '🎯', 'assessment data quietly becoming surveillance',
+   'Purpose limitation: saved reports and memory cards keep only what education needs; reviewer observations are the watch on scope.',
+   ['GDPR Art. 5(1)(b)']),
+  ('r10', '⚖️', 'who answers when the system is wrong?',
+   'Every run leaves an immutable trace, human decisions are recorded — and this register, co-signed by its reviewers, is the accountability surface.',
+   ['AI Act Art. 12'])
+] %}
+
+<div class="hero">
+    <h1>Living Risk Register</h1>
+    <p>Not a slide deck: a <b>co-created</b> register. Ten baseline risks curated by the team —
+       and beneath each, the observations real reviewers registered while inspecting real
+       pipeline traces. Risks nobody had listed gather at the bottom as candidates for the
+       next revision.</p>
+    <span class="badge-privacy" data-tip="GDPR governs the children's personal data; the EU AI Act classifies AI in education as high-risk, demanding risk management, data governance, human oversight and transparency.">Frameworks referenced: GDPR · EU AI Act (education = high-risk, Annex III)</span>
+</div>
+
+<div class="report-head" style="margin-bottom:20px">
+    <span class="chip brand" data-tip="Human observations registered across all traces">✍ {{ stats.total }} observation{{ 's' if stats.total != 1 }}</span>
+    <span class="chip" data-tip="How many distinct pipeline runs have at least one observation">🔍 {{ stats.traces }} trace{{ 's' if stats.traces != 1 }} annotated</span>
+    <span class="chip chip-warn" data-tip="Observations that fit no baseline category — candidates to become R11+">🌱 {{ stats.candidates }} new candidate{{ 's' if stats.candidates != 1 }}</span>
+    <span class="chip chip-ok" data-tip="Observations a reviewer has confirmed as real risks">✓ {{ stats.confirmed }} confirmed</span>
+</div>
+
+<div class="cards">
+    {% for ref, icon, sub, mitigation, chips in BASELINE %}
+    {% set obs = by_ref.get(ref, []) %}
+    <div class="card" id="{{ ref }}">
+        <div class="card-head"><div class="card-icon">{{ icon }}</div>
+            <div><h2 class="card-title">{{ ref | upper }} · {{ ref_titles[ref] }}</h2>
+            <p class="card-sub">{{ sub }}</p></div>
+        </div>
+        <p class="exp-desc"><b>Mitigation:</b> {{ mitigation }}</p>
+        <div class="chat-tools">
+            {% for c in chips %}<span class="chip">{{ c }}</span>{% endfor %}
+            <span class="chip {{ 'chip-ok' if obs else '' }}" data-tip="Human observations registered against this risk from real traces">✍ {{ obs | length }} observation{{ 's' if obs | length != 1 }}</span>
+        </div>
+        {% for n in obs %}
+        <div class="sig-row">
+            <span class="chip {{ 'chip-danger' if n.severity == 'danger' else 'chip-warn' if n.severity == 'warn' else '' }}">{{ n.severity }}</span>
+            <div class="sig-body">
+                {{ n.comment }}
+                <div style="margin-top:4px; font-size:12px; color:var(--text-faint)">
+                    {{ n.author }} · {{ n.ts }} · stage: {{ n.stage }} ·
+                    <a href="{{ url_for('pipeline_detail', run_id=n.trace_id) }}#risk-notes" style="color:#C76BFF; text-decoration:none">trace {{ n.trace_id[:8] }}…</a> ·
+                    <span class="{{ 'chip-ok' if n.status == 'confirmed' else 'chip-warn' if n.status == 'dismissed' else '' }}" style="border-radius:6px; padding:0 6px">{{ n.status }}</span>
+                </div>
+            </div>
+            <form method="POST" action="{{ url_for('risk_note_status', row=n.row) }}" class="sig-link" style="margin-top:0; display:flex; gap:6px">
+                <input type="hidden" name="back" value="{{ url_for('risk_register') }}#{{ ref }}">
+                {% if n.status != 'confirmed' %}<button class="btn btn-ghost btn-sm" style="margin-top:0" name="status" value="confirmed" data-tip="Confirm — this is a real risk">✓</button>{% endif %}
+                {% if n.status != 'dismissed' %}<button class="btn btn-ghost btn-sm" style="margin-top:0" name="status" value="dismissed" data-tip="Dismiss — reviewed, not a real risk">✕</button>{% endif %}
+            </form>
+        </div>
+        {% endfor %}
+    </div>
+    {% endfor %}
+</div>
+
+{# ============ REVIEWER-IDENTIFIED CANDIDATES ============ #}
+{% set cands = by_ref.get('new', []) %}
+<div class="card wide" id="candidates" style="margin-top:22px">
+    <div class="card-head">
+        <div class="card-icon">🌱</div>
+        <div>
+            <h2 class="card-title">Reviewer-identified risks — candidates for the register</h2>
+            <p class="card-sub">Observations that fit no baseline category. Confirmed ones are
+               proposals for R11, R12, … — this is how the register grows.</p>
+        </div>
+    </div>
+    {% if not cands %}
+    <p class="card-sub" style="margin:0">No unlisted risks registered yet. Open any
+       <a href="{{ url_for('pipeline_index') }}" style="color:#C76BFF">pipeline trace</a>
+       and press “✍ Register a risk” when something catches your eye.</p>
+    {% endif %}
+    {% for n in cands %}
+    <div class="sig-row">
+        <span class="chip {{ 'chip-danger' if n.severity == 'danger' else 'chip-warn' if n.severity == 'warn' else '' }}">{{ n.severity }}</span>
+        <div class="sig-body">
+            {{ n.comment }}
+            <div style="margin-top:4px; font-size:12px; color:var(--text-faint)">
+                {{ n.author }} · {{ n.ts }} · stage: {{ n.stage }} ·
+                <a href="{{ url_for('pipeline_detail', run_id=n.trace_id) }}#risk-notes" style="color:#C76BFF; text-decoration:none">trace {{ n.trace_id[:8] }}…</a> ·
+                <span class="{{ 'chip-ok' if n.status == 'confirmed' else 'chip-warn' if n.status == 'dismissed' else '' }}" style="border-radius:6px; padding:0 6px">{{ n.status }}</span>
+            </div>
+        </div>
+        <form method="POST" action="{{ url_for('risk_note_status', row=n.row) }}" class="sig-link" style="margin-top:0; display:flex; gap:6px">
+            <input type="hidden" name="back" value="{{ url_for('risk_register') }}#candidates">
+            {% if n.status != 'confirmed' %}<button class="btn btn-ghost btn-sm" style="margin-top:0" name="status" value="confirmed" data-tip="Confirm — promote this toward a numbered register entry">✓</button>{% endif %}
+            {% if n.status != 'dismissed' %}<button class="btn btn-ghost btn-sm" style="margin-top:0" name="status" value="dismissed" data-tip="Dismiss — reviewed, not a real risk">✕</button>{% endif %}
+        </form>
+    </div>
+    {% endfor %}
+</div>
+
+{% endblock %}

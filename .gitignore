@@ -1,0 +1,27 @@
+# Secrets — never commit these
+.env
+*.json.key
+insudies-*.json
+service_account.json
+
+# Python
+__pycache__/
+*.pyc
+*.pyo
+.venv/
+venv/
+
+# App output
+output_folder/
+traces/
+
+# Editors / OS
+*.code-workspace
+.vscode/
+.DS_Store
+Thumbs.db
+
+# PII backup (real names mapping) - local only, never ship
+students_backup_real_names_*.csv
+
+backup_*.json

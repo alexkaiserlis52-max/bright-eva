@@ -1,0 +1,463 @@
+{% extends "base.html" %}
+{% block title %}Trace {{ t.run_id }}{% endblock %}
+{% block content %}
+
+{% set icons = {'fetch':'📥','scrub':'🛡️','llm':'🤖','critic':'🧐','regenerate':'♻️','insight':'🧠','early_warning':'⚠️','save':'💾','tool':'🔧','note':'📝','error':'⛔'} %}
+{% set stage_order = ['fetch','scrub','llm','tool','critic','regenerate','insight','early_warning','save','note','error'] %}
+
+<div class="report-head">
+    <span class="chip brand" data-tip="{{ 'A report-generation run' if t.kind == 'report' else 'A chat-conversation run' }}">{{ t.kind }} run</span>
+    <span class="chip mono" data-tip="Unique ID of this trace — every run leaves one immutable JSONL record on disk">{{ t.run_id }}</span>
+    <span class="chip mono" data-tip="The OpenRouter model that powered this run">{{ t.model }}</span>
+    <span class="chip" data-tip="When the run started">📅 {{ t.started }}</span>
+    {% if t.summary %}<span class="chip" data-tip="Total wall-clock duration">⏱ {{ (t.summary.duration_ms / 1000) | round(1) }}s</span>{% endif %}
+    {% if vx.dry_run %}<span class="chip chip-warn" data-tip="A write was requested but the dry-run guard blocked it at the data layer — no sheet was modified. Used for experiments and staged educator review.">🧪 dry-run — nothing was written</span>{% endif %}
+    <span class="chip {{ 'chip-ok' if t.status == 'ok' else 'chip-danger' }}" data-tip="{{ 'Run completed without errors' if t.status == 'ok' else 'Something failed — look for the error event in the timeline' }}">{{ t.status }}</span>
+</div>
+
+<div class="hero" style="margin-bottom:18px">
+    <h1 style="font-size:26px">{{ t.label }}</h1>
+    <p>What this run did, step by step — which data stores it touched, which AI models it called, and how the data was protected along the way.</p>
+</div>
+
+<div class="report-actions" style="margin:0 0 22px">
+    <a class="btn btn-ghost btn-sm" style="margin-top:0" data-tip="Opens the chat with a pre-filled request — E.V.A. walks you through this exact run in plain language"
+       href="{{ url_for('chat') }}?q={{ ('Explain this ' + t.kind + ' pipeline run ("' + t.label + '"). Walk me through each stage — fetching data, anonymization, AI calls, quality gate, memory, early warning, saving — what it does and why it exists.') | urlencode }}">
+        💬 Ask E.V.A. to explain this pipeline
+    </a>
+    <a class="btn btn-ghost btn-sm" style="margin-top:0" data-tip="The raw trace record (JSON) exactly as written to disk — the ground truth this page renders" href="{{ url_for('pipeline_raw', run_id=t.run_id) }}" target="_blank">{ } Raw JSON</a>
+    <a class="btn btn-ghost btn-sm" style="margin-top:0" href="{{ url_for('pipeline_index') }}">← All traces</a>
+    <form method="POST" action="{{ url_for('pipeline_delete', run_id=t.run_id) }}" style="margin:0"
+          onsubmit="return confirm('Delete this trace permanently? Any risk observations on it stay in the register.');">
+        <button type="submit" class="btn btn-danger-ghost btn-sm" style="margin-top:0" data-tip="Permanently removes this trace file — for dropping test runs before a demo">🗑 Delete trace</button>
+    </form>
+</div>
+
+{# ============ RISK SIGNALS ============ #}
+{% if signals or controls %}
+<div class="card wide" style="margin-bottom:22px">
+    <div class="card-head">
+        <div class="card-icon">🔎</div>
+        <div>
+            <h2 class="card-title">Risk signals in this run</h2>
+            <p class="card-sub">An automated second look — deterministic checks that hunt for what the happy path hides. Links jump to the Risk Register.</p>
+        </div>
+    </div>
+    {% if not signals %}
+    <p class="card-sub" style="margin:0">No risk signals — nothing suspicious detected in this run.</p>
+    {% endif %}
+    {% for s in signals %}
+    <div class="sig-row">
+        <span class="chip {{ 'chip-danger' if s.severity == 'danger' else 'chip-warn' if s.severity == 'warn' else '' }}"
+              data-tip="{{ 'A safeguard was off or a protection failed in this run — investigate first' if s.severity == 'danger' else 'Something worth a human look — not necessarily wrong, but not provably right either' if s.severity == 'warn' else 'Context an auditor should know — a property of this run, not a defect' }}">{{ s.severity }}</span>
+        <div class="sig-body"><b>{{ s.title }}</b>{{ s.detail }}</div>
+        <a class="btn btn-ghost btn-sm sig-link" style="margin-top:0" data-tip="Jump to this risk's full entry in the Risk Register" href="{{ url_for('risk_register') }}#{{ s.ref }}">{{ s.ref | upper }} →</a>
+    </div>
+    {% endfor %}
+    {% if controls %}
+    <div class="kv-k" style="margin:16px 0 2px" data-tip="Positive evidence: safeguards this trace proves actually ran — not just configured, but observed working">✓ Controls observed working</div>
+    {% for c in controls %}
+    <div class="sig-row">
+        <span class="chip chip-ok">control</span>
+        <div class="sig-body"><b>{{ c.title }}</b>{{ c.detail }}</div>
+    </div>
+    {% endfor %}
+    {% endif %}
+</div>
+{% endif %}
+
+{# ============ HUMAN RISK OBSERVATIONS (living register) ============ #}
+<div class="card wide" id="risk-notes" style="margin-bottom:22px">
+    <div class="card-head">
+        <div class="card-icon">✍️</div>
+        <div>
+            <h2 class="card-title">Human risk observations</h2>
+            <p class="card-sub">What reviewers — people, not heuristics — registered on this run.
+               Every note feeds the <a href="{{ url_for('risk_register') }}" style="color:#C76BFF">living Risk Register</a>.</p>
+        </div>
+    </div>
+    {% if notes %}
+    {% for n in notes %}
+    <div class="sig-row">
+        <span class="chip {{ 'chip-danger' if n.severity == 'danger' else 'chip-warn' if n.severity == 'warn' else '' }}"
+              data-tip="Severity assigned by the human reviewer">{{ n.severity }}</span>
+        <div class="sig-body">
+            <b>{{ ref_titles[n.ref] }}</b>
+            {{ n.comment }}
+            <div style="margin-top:4px; font-size:12px; color:var(--text-faint)">
+                {{ n.author }} · {{ n.ts }} · stage: {{ n.stage }} ·
+                <span class="{{ 'chip-ok' if n.status == 'confirmed' else 'chip-warn' if n.status == 'dismissed' else '' }}"
+                      style="border-radius:6px; padding:0 6px">{{ n.status }}</span>
+            </div>
+        </div>
+        <form method="POST" action="{{ url_for('risk_note_status', row=n.row) }}" class="sig-link" style="margin-top:0; display:flex; gap:6px">
+            <input type="hidden" name="back" value="{{ url_for('pipeline_detail', run_id=t.run_id) }}#risk-notes">
+            {% if n.status != 'confirmed' %}<button class="btn btn-ghost btn-sm" style="margin-top:0" name="status" value="confirmed" data-tip="Mark this observation as a confirmed risk">✓</button>{% endif %}
+            {% if n.status != 'dismissed' %}<button class="btn btn-ghost btn-sm" style="margin-top:0" name="status" value="dismissed" data-tip="Dismiss — reviewed, not a real risk">✕</button>{% endif %}
+        </form>
+    </div>
+    {% endfor %}
+    {% else %}
+    <p class="card-sub" style="margin:0">No human observations yet on this run — be the first reviewer.</p>
+    {% endif %}
+    <div class="report-actions" style="margin-top:14px">
+        <a class="btn btn-primary btn-sm" href="#register-risk" data-tip="Open the form below — takes under a minute">✍ Register a risk from this run</a>
+    </div>
+</div>
+
+{# ============ REGISTER-A-RISK FORM ============ #}
+<div class="card wide" id="register-risk" style="margin-bottom:22px">
+    <div class="card-head">
+        <div class="card-icon">📌</div>
+        <div>
+            <h2 class="card-title">Register a risk</h2>
+            <p class="card-sub">Spotted something the automated signals missed? Record it — with the
+               reasoning an auditor would need. Stored in the shared RiskNotes sheet, linked to this trace.</p>
+        </div>
+    </div>
+    <form method="POST" action="{{ url_for('pipeline_risk_note', run_id=t.run_id) }}">
+        <div class="field-row">
+            <div class="field">
+                <label for="rn-stage" class="tip" data-tip="The pipeline stage your observation concerns — or 'whole run' if it is about the run as a whole">Stage</label>
+                <select id="rn-stage" name="stage">
+                    <option value="whole run" {{ 'selected' if not request.args.get('stage') }}>whole run</option>
+                    {% for st in t.events | map(attribute='stage') | unique | list %}
+                    <option value="{{ st }}" {{ 'selected' if request.args.get('stage') == st }}>{{ st }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="field">
+                <label for="rn-ref" class="tip" data-tip="Which baseline risk this belongs to — or 'New, unlisted risk' if the register has no category for it yet">Risk category</label>
+                <select id="rn-ref" name="ref">
+                    {% for key, title in ref_titles.items() %}
+                    <option value="{{ key }}">{{ key | upper }} · {{ title }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="field">
+                <label for="rn-sev" class="tip" data-tip="danger = a safeguard failed · warn = worth a human look · info = context for auditors">Severity</label>
+                <select id="rn-sev" name="severity">
+                    <option value="info">info</option>
+                    <option value="warn">warn</option>
+                    <option value="danger">danger</option>
+                </select>
+            </div>
+        </div>
+        <div class="field">
+            <label for="rn-author" class="tip" data-tip="Optional — your name or initials, so other reviewers know whose eye caught this">Your name (optional)</label>
+            <input type="text" id="rn-author" name="author" maxlength="60" placeholder="e.g. AIED reviewer 3">
+        </div>
+        <div class="field">
+            <label for="rn-comment" class="tip" data-tip="What you saw and why it matters — write it so someone who never opened this trace understands the concern">Observation</label>
+            <textarea id="rn-comment" name="comment" rows="4" maxlength="1000" required
+                      placeholder="e.g. The final report mentions a specific score that never appears in any prompt — where did the model get it?"></textarea>
+        </div>
+        <button type="submit" class="btn btn-primary" data-tip="Saved to the RiskNotes sheet and shown on this trace and the Risk Register">Register observation</button>
+    </form>
+</div>
+
+{# ============ RESOURCES USED IN THIS RUN ============ #}
+<div class="card wide" style="margin-bottom:22px">
+    <div class="card-head">
+        <div class="card-icon">🧭</div>
+        <div>
+            <h2 class="card-title">Resources used in this run</h2>
+            <p class="card-sub">Where the data lives, which AI processed it, and under which terms</p>
+        </div>
+    </div>
+
+    {% if vx.sheets %}
+    <div class="kv-k" style="margin:6px 0">📚 Databases</div>
+    <p class="card-sub" style="margin:0 0 10px">{{ vx.sheets_kind }} — the purple names open the actual spreadsheets in a new tab</p>
+    <table class="mini-table">
+        <tr>
+            <th class="tip" data-tip="The Google Sheet worksheet this run touched — the school's database is a set of cloud spreadsheets">Store</th>
+            <th class="tip" data-tip="What kind of data lives in that store">What it holds</th>
+            <th class="tip" data-tip="Whether this run only read from it or also wrote to it">Access</th>
+            <th class="tip" data-tip="How many data rows were pulled into the run">Rows read</th>
+        </tr>
+        {% for s in vx.sheets %}
+        <tr>
+            <td class="mono">
+                {%- for part in s.name.split(' + ') -%}
+                    {%- if sheet_urls.get(part) -%}
+                        <a href="{{ sheet_urls[part] }}" target="_blank" rel="noopener"
+                           style="color:#C76BFF; text-decoration:none"
+                           data-tip="Opens the real '{{ part }}' spreadsheet in a new tab — your Google account needs access">{{ part }} ↗</a>
+                    {%- else -%}
+                        {{ part }}
+                    {%- endif -%}
+                    {{- ' + ' if not loop.last -}}
+                {%- endfor -%}
+            </td>
+            <td>{{ s.info }}</td>
+            <td>{{ s.ops | join(' + ') }}</td>
+            <td>{{ s.rows if s.rows else '—' }}</td>
+        </tr>
+        {% endfor %}
+    </table>
+    {% endif %}
+
+    {% if vx.models %}
+    <div class="kv-k" style="margin:18px 0 6px">🤖 AI models</div>
+    <p class="card-sub" style="margin:0 0 10px">
+        All AI calls go through <b>OpenRouter</b> (an API gateway) and only ever carry
+        <b>anonymized</b> data — real names never leave this system.
+        <a href="https://openrouter.ai/privacy" target="_blank" rel="noopener">OpenRouter privacy policy ↗</a>
+    </p>
+    <table class="mini-table">
+        <tr>
+            <th class="tip" data-tip="The exact model ID as called through OpenRouter">Model</th>
+            <th class="tip" data-tip="The company that hosts the model and whose data policy applies">Provider</th>
+            <th class="tip" data-tip="How many separate AI calls this run made to the model">Calls</th>
+            <th class="tip" data-tip="Prompt tokens sent / completion tokens received — the billing units">Tokens in / out</th>
+            <th class="tip" data-tip="Tokens × live OpenRouter price for this model — an estimate, not an invoice">Est. cost</th>
+            <th class="tip" data-tip="What the provider says about storing or training on API data — follow the policy link">Data terms</th>
+        </tr>
+        {% for m in vx.models %}
+        <tr>
+            <td class="mono">{{ m.id }}</td>
+            <td>{{ m.provider[0] }}</td>
+            <td>{{ m.calls }}</td>
+            <td>{{ m.in }} / {{ m.out }}</td>
+            <td class="mono">{{ '~$%.4f' | format(m.cost_usd) if m.cost_usd is not none else '—' }}</td>
+            <td>{{ m.provider[1] }} <a href="{{ m.provider[2] }}" target="_blank" rel="noopener">policy ↗</a></td>
+        </tr>
+        {% endfor %}
+    </table>
+    {% if vx.total_cost_usd is not none %}
+    <div class="chat-tools" style="margin-top:10px">
+        <span class="chip" data-tip="All models in this run, tokens × live OpenRouter prices (cached 6h). An estimate for transparency — actual billing is on the OpenRouter dashboard.">Estimated run cost: <b>~${{ '%.4f' | format(vx.total_cost_usd) }}</b>&nbsp;(live OpenRouter prices)</span>
+    </div>
+    {% endif %}
+    {% endif %}
+
+    {% if vx.timing %}
+    <div class="kv-k" style="margin:18px 0 6px">⏱ Where the time went</div>
+    <p class="card-sub" style="margin:0 0 10px">
+        AI calls clock true latency (they run in parallel, so wall-clock is shorter than their sum); other stages use inter-event time.
+    </p>
+    {% set max_ms = vx.timing[0][1] %}
+    {% set dur = t.summary.duration_ms if t.summary and t.summary.duration_ms else 1 %}
+    {% for stage, ms in vx.timing %}
+    <div class="timing-row">
+        <span class="timing-label">{{ icons[stage] if stage in icons else '•' }} {{ stage }}</span>
+        <div class="timing-track">
+            <div class="timing-bar" style="width: {{ (ms / max_ms * 100) | round(1) }}%"
+                 title="{{ stage }}: {{ ms }} ms — {{ (ms / dur * 100) | round(0) }}% of the run"></div>
+        </div>
+        <span class="timing-val mono">{{ ms }} ms</span>
+    </div>
+    {% endfor %}
+    {% endif %}
+
+    <div class="kv-k" style="margin:18px 0 6px">🛡️ Anonymization in this run</div>
+    <p class="card-sub" style="margin:0 0 10px">
+        Applied to every prompt before any AI call: student/parent names → <span class="mono">[Student]</span>/<span class="mono">[Parent]</span>,
+        emails → <span class="mono">[email]</span>, phones → <span class="mono">[phone]</span>. Pseudonymous IDs (e.g. demo02) are never masked.
+    </p>
+    <div class="chat-tools">
+        {% for k, v in vx.masks.items() %}
+        <span class="chat-tool-chip" data-tip="The anonymizer masked this many values of this kind before any prompt reached the model">{{ k }} ×{{ v }}</span>
+        {% endfor %}
+        {% if not vx.masks %}<span class="chip" data-tip="The anonymizer scanned the data and found no personal identifiers — expected on synthetic sandbox data; on real data this would deserve a second look">nothing needed masking in this run</span>{% endif %}
+    </div>
+</div>
+
+{# ============ STEP-BY-STEP NARRATIVE ============ #}
+{% set ns = namespace(step=0) %}
+{% for s in stage_order %}
+    {% set evs = t.events | selectattr('stage', 'equalto', s) | list %}
+    {% if evs %}
+    {% set ns.step = ns.step + 1 %}
+    {% set title, blurb = stage_info.get(s, (s, '')) %}
+    <div class="card wide" style="margin-bottom:16px">
+        <div class="card-head">
+            <div class="card-icon">{{ icons[s] }}</div>
+            <div>
+                <h2 class="card-title">Step {{ ns.step }} · {{ title }}</h2>
+                <p class="card-sub">{{ blurb }}</p>
+            </div>
+        </div>
+
+        {% if s == 'fetch' %}
+            {% for e in evs %}
+            <div class="kv" style="margin-bottom:8px"><span class="kv-k">entity</span><span class="kv-v mono">{{ e.entity }}</span></div>
+            <table class="mini-table">
+                <tr><th>Source sheet</th><th>Rows</th><th>Filter</th></tr>
+                {% for src in e.sources %}
+                <tr><td class="mono">{{ src.sheet }}</td><td>{{ src.rows }}</td><td>{{ src.filter }}</td></tr>
+                {% endfor %}
+            </table>
+            {% endfor %}
+
+        {% elif s == 'scrub' %}
+            {% for e in evs %}
+            <div class="kv" style="margin-bottom:8px"><span class="kv-k">scope</span><span class="kv-v">{{ e.context }}</span></div>
+            <div class="chat-tools">
+                {% for k, v in e.masks.items() %}
+                <span class="chat-tool-chip">{{ k }} ×{{ v }}</span>
+                {% endfor %}
+                {% if not e.masks %}<span class="chip">no masks needed</span>{% endif %}
+            </div>
+            <div class="kv"><span class="kv-k">rows anonymized</span><span class="kv-v">{{ e.rows }}</span></div>
+            {% endfor %}
+
+        {% elif s == 'llm' %}
+            {% for e in evs %}
+            <details class="log-block" style="margin-bottom:8px">
+                <summary>Call {{ loop.index }} — {{ e.model }} · ⏱ {{ e.latency_ms }} ms
+                    {%- if e.prompt_tokens %} · in {{ e.prompt_tokens }} / out {{ e.completion_tokens }} tok{% endif -%}
+                    {%- if e.streamed %} · streamed{% endif -%}
+                    {%- if e.tools %} · tools on{% endif %}
+                </summary>
+                {% for m in e.messages %}
+                <div class="msg">
+                    <span class="msg-role role-{{ m.role }}">{{ m.role }}{{ ' · ' + m.name if m.name }}</span>
+                    {% if m.content %}<pre class="pre">{{ m.content }}</pre>{% endif %}
+                    {% if m.tool_calls %}
+                    <div class="chat-tools">{% for tc in m.tool_calls %}<span class="chat-tool-chip">⚙ {{ tc.name }}({{ tc.args }})</span>{% endfor %}</div>
+                    {% endif %}
+                </div>
+                {% endfor %}
+                {% if e.response %}
+                <div class="kv-k" style="margin:12px 0 4px">Model response</div>
+                <pre class="pre pre-response">{{ e.response }}</pre>
+                {% endif %}
+                {% if e.tool_calls %}
+                <div class="chat-tools" style="margin-top:10px">{% for tc in e.tool_calls %}<span class="chat-tool-chip">→ calls ⚙ {{ tc.name }}({{ tc.args }})</span>{% endfor %}</div>
+                {% endif %}
+            </details>
+            {% endfor %}
+
+        {% elif s == 'tool' %}
+            {% for e in evs %}
+            <div class="chat-tools" style="margin-bottom:8px"><span class="chat-tool-chip">⚙ {{ e.name }}({{ e.args | tojson }})</span></div>
+            <details class="log-block"><summary>What the tool returned</summary><pre class="pre">{{ e.result }}</pre></details>
+            {% endfor %}
+
+        {% elif s == 'critic' %}
+            {% for e in evs %}
+            {% if e.verdict == 'pass' %}
+            <span class="chip chip-ok" data-tip="The critic gate reviewed the draft (grounding, question answered, PII-free) and approved it">✓ PASS — the report may be saved</span>
+            {% elif e.verdict == 'fail' %}
+            <span class="chip chip-danger" data-tip="The critic gate rejected the draft — one regeneration ran with the critic's feedback">✕ FAIL — regeneration triggered</span>
+            {% else %}
+            <span class="chip chip-warn" data-tip="The quality gate did not review this draft — see the reason. A skipped gate means unreviewed output.">⊘ SKIPPED — {{ e.reason }}</span>
+            {% endif %}
+            {% if e.pii_leak_detected %}<span class="chip chip-danger" style="margin-left:8px" data-tip="The critic found a name-like token that survived the anonymizer — a defense-in-depth catch">PII leak detected</span>{% endif %}
+            {% if e.issues %}
+            <ul class="issue-list">{% for i in e.issues %}<li>{{ i }}</li>{% endfor %}</ul>
+            {% endif %}
+            {% if e.reviewer_verdict %}
+            <details class="log-block"><summary>Reviewer verdict JSON</summary><pre class="pre">{{ e.reviewer_verdict | tojson(indent=2) }}</pre></details>
+            {% endif %}
+            {% endfor %}
+
+        {% elif s == 'regenerate' %}
+            {% for e in evs %}
+            <div class="kv-k" style="margin-bottom:4px">Regenerated once with the critic's feedback</div>
+            <pre class="pre">{{ e.feedback }}</pre>
+            {% endfor %}
+
+        {% elif s == 'insight' %}
+            {% for e in evs %}
+            <div class="kv" style="margin-bottom:8px"><span class="kv-k">memory card for</span><span class="kv-v mono">{{ e.entity_type }} · {{ e.entity_id }}</span></div>
+            {% if e.card %}<pre class="pre">{{ e.card | tojson(indent=2) }}</pre>{% endif %}
+            {% if e.stored == false %}<span class="chip chip-warn" data-tip="The memory card was built but not written to InsightsMemory — see the reason">not stored — {{ e.reason }}</span>{% endif %}
+            {% endfor %}
+
+        {% elif s == 'early_warning' %}
+            {% for e in evs %}
+            {% if e.skipped %}
+            <span class="chip chip-warn" data-tip="No comparison happened — see the reason (usually: first report for this entity, so no baseline exists yet)">⊘ {{ e.reason }}</span>
+            {% elif e.fired %}
+            <div class="alert-banner">⚠️ EARLY WARNING — {{ e.alert }}</div>
+            <p class="card-sub" style="margin-top:8px">The educator should look at this entity soon — the trajectory worsened or new risk flags appeared.</p>
+            {% else %}
+            <span class="chip chip-ok" data-tip="The new memory card was compared with the previous one: trajectory did not worsen and no new risk flags appeared — so the system stays quiet by design">✓ no alert — trajectory stable ({{ e.trajectory }})</span>
+            <p class="card-sub" style="margin-top:8px">Compared with the previous memory card: "{{ e.trajectory }}" did not get worse and no new risk flags appeared, so nothing needs the educator's attention.</p>
+            {% endif %}
+            {% endfor %}
+
+        {% elif s == 'save' %}
+            {% for e in evs %}
+            {% if e.blocked %}
+            <div class="alert-banner warn" data-tip="The write was blocked at the data layer — not by convention. Experiments and staged approvals can never touch the school's sheets.">🧪 DRY-RUN — {{ e.reason }}</div>
+            {% else %}
+            <div class="chat-tools" style="margin-bottom:8px">
+                <span class="chip chip-ok" data-tip="The report was written to the school's sheets">✓ saved</span>
+                <span class="chip mono" data-tip="The worksheet that received the write">{{ e.sheet }}</span>
+                <span class="chip" data-tip="Report type and the entity it concerns">{{ e.type }} · {{ e.entity }}</span>
+                <span class="chip" data-tip="Length of the saved report text">{{ e.report_chars }} chars</span>
+            </div>
+            <details class="log-block"><summary>Saved report text</summary><pre class="pre">{{ e.report }}</pre></details>
+            {% endif %}
+            {% endfor %}
+
+        {% elif s == 'note' %}
+            {% for e in evs %}
+            <div class="kv-grid">
+                {% for k, v in e.items() if k not in ['t','dt_ms','stage'] %}
+                <div class="kv"><span class="kv-k">{{ k }}</span><span class="kv-v">{{ v }}</span></div>
+                {% endfor %}
+            </div>
+            {% endfor %}
+
+        {% elif s == 'error' %}
+            {% for e in evs %}
+            <div class="alert-banner">⛔ {{ e.where }} — {{ e.message }}</div>
+            {% endfor %}
+        {% endif %}
+
+        {% if stage_risks.get(s) %}
+        <div class="stage-lens" data-tip="Curated questions an auditor or researcher should ask about this exact stage — each links to the full risk entry">
+            <b>🔍 Risk lens at this stage — what an auditor should question here:</b>
+            <ul>
+                {% for text, ref in stage_risks[s] %}
+                <li>{{ text }} <a href="{{ url_for('risk_register') }}#{{ ref }}">({{ ref | upper }})</a></li>
+                {% endfor %}
+            </ul>
+            <a href="{{ url_for('pipeline_detail', run_id=t.run_id, stage=s) }}#register-risk"
+               data-tip="Open the observation form with this stage pre-selected">✍ register an observation at this stage</a>
+        </div>
+        {% endif %}
+    </div>
+    {% endif %}
+{% endfor %}
+
+{# ============ ANONYMIZER BEFORE/AFTER SAMPLES ============ #}
+{% if t.samples %}
+<div class="card wide" style="margin-bottom:22px">
+    <div class="card-head">
+        <div class="card-icon">🛡️</div>
+        <div>
+            <h2 class="card-title">Anonymizer — before / after</h2>
+            <p class="card-sub">Exactly what was masked before anything reached the model (synthetic sandbox data)</p>
+        </div>
+    </div>
+    <div class="diff-grid">
+        {% for s in t.samples %}
+        <div class="diff-pair">
+            <div class="diff-cell diff-before"><span class="diff-tag" data-tip="The raw value as stored in the sheet">BEFORE</span>{{ s.before }}</div>
+            <div class="diff-arrow">→</div>
+            <div class="diff-cell diff-after"><span class="diff-tag" data-tip="The same value after anonymization — this is what the model received">AFTER</span>{{ s.after }}</div>
+        </div>
+        <div class="diff-field mono" data-tip="The sheet column this sample comes from">{{ s.field }}</div>
+        {% endfor %}
+    </div>
+</div>
+{% endif %}
+
+{# ============ RAW TIMELINE (engineers) ============ #}
+<details class="log-block" style="margin-bottom:22px">
+    <summary>Raw event timeline ({{ t.events | length }} events — technical view)</summary>
+    {% for e in t.events %}
+    <div class="kv" style="padding:3px 0">
+        <span class="kv-k mono">+{{ e.dt_ms }} ms</span>
+        <span class="kv-v">{{ icons[e.stage] if e.stage in icons else '•' }} {{ e.stage }}</span>
+    </div>
+    {% endfor %}
+</details>
+
+{% endblock %}

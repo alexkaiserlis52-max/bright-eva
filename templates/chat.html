@@ -1,0 +1,209 @@
+{% extends "base.html" %}
+{% block title %}Chat{% endblock %}
+{% block content %}
+
+<div class="hero">
+    <h1>Chat with E.V.A.</h1>
+    <p>Ask anything about students, class groups, lessons or teaching quality — every answer is grounded in the school's live data.</p>
+    <span class="badge-privacy" data-tip="Chat answers come from tool calls that read the sheets by pseudonymous ID. Personal data is masked before the model sees anything — same anonymizer as the report pipeline.">
+        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+        Students are referenced by ID only
+    </span>
+</div>
+
+<div class="chat-panel">
+    <div class="chat-log" id="chat-log">
+        <div class="chat-msg assistant">
+            <div class="chat-bubble">
+                Hi! I'm <b>E.V.A.</b> Ask me things like:
+                <div class="chat-sugg" id="chat-sugg">
+                    <button type="button">How is demo02 progressing?</button>
+                    <button type="button">What's the climate of group ΜΓ1?</button>
+                    <button type="button">Compare demo02 and demo07</button>
+                    <button type="button">Which students show declining trends?</button>
+                    <button type="button">What's covered in lesson 3 of ΜΓ?</button>
+                </div>
+            </div>
+        </div>
+    </div>
+    <form class="chat-form" id="chat-form">
+        <input type="text" id="chat-input" placeholder="Ask E.V.A. anything…" autocomplete="off" required
+               data-tip-pos="bottom" data-tip="Ask in plain language — E.V.A. decides which data tools to call (student profiles, group climate, lesson content, comparisons) and answers from what they return.">
+        <button type="submit" class="btn btn-primary chat-send" id="chat-send"
+                data-tip-pos="bottom" data-tip="Streams the answer token by token. Tool calls E.V.A. makes appear as chips above the answer.">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 2L11 13"/><path d="M22 2l-7 20-4-9-9-4z"/></svg>
+            Send
+        </button>
+        <button type="button" class="btn btn-ghost chat-clear" id="chat-clear"
+                data-tip-pos="bottom" data-tip="Clears this conversation's memory on the server — E.V.A. forgets the context. Nothing in the sheets is touched.">Clear</button>
+    </form>
+</div>
+
+<script>
+(function () {
+    const log = document.getElementById('chat-log');
+    const form = document.getElementById('chat-form');
+    const input = document.getElementById('chat-input');
+    const sendBtn = document.getElementById('chat-send');
+
+    function esc(s) {
+        return s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+    }
+
+    // very small markdown-ish renderer: bold, headings, bullets, line breaks
+    function render(text) {
+        let h = esc(text);
+        h = h.replace(/\*\*([^*]+)\*\*/g, '<b>$1</b>');
+        const lines = h.split(/\r?\n/);
+        let out = '', inList = false;
+        for (let line of lines) {
+            const t = line.trim();
+            if (/^#{2,4}\s+/.test(t)) {
+                if (inList) { out += '</ul>'; inList = false; }
+                out += '<div class="chat-h">' + t.replace(/^#{2,4}\s+/, '') + '</div>';
+            } else if (/^[-•*]\s+/.test(t)) {
+                if (!inList) { out += '<ul>'; inList = true; }
+                out += '<li>' + t.replace(/^[-•*]\s+/, '') + '</li>';
+            } else {
+                if (inList) { out += '</ul>'; inList = false; }
+                if (t) out += '<p>' + t + '</p>';
+            }
+        }
+        if (inList) out += '</ul>';
+        return out;
+    }
+
+    function addMsg(role) {
+        const wrap = document.createElement('div');
+        wrap.className = 'chat-msg ' + role;
+        const bubble = document.createElement('div');
+        bubble.className = 'chat-bubble';
+        wrap.appendChild(bubble);
+        log.appendChild(wrap);
+        log.scrollTop = log.scrollHeight;
+        return bubble;
+    }
+
+    function addToolChip(bubble, name, args) {
+        let chips = bubble.querySelector('.chat-tools');
+        if (!chips) {
+            chips = document.createElement('div');
+            chips.className = 'chat-tools';
+            bubble.appendChild(chips);
+        }
+        const chip = document.createElement('span');
+        chip.className = 'chat-tool-chip';
+        chip.dataset.tip = 'E.V.A. called a data tool to ground its answer — open the pipeline trace below to see exactly what it read.';
+        const argStr = Object.entries(args || {}).map(([k, v]) => k + ': ' + v).join(', ');
+        chip.textContent = '⚙ ' + name + (argStr ? ' (' + argStr + ')' : '');
+        chips.appendChild(chip);
+        log.scrollTop = log.scrollHeight;
+    }
+
+    async function send(message) {
+        const userBubble = addMsg('user');
+        userBubble.textContent = message;
+
+        const bubble = addMsg('assistant');
+        bubble.innerHTML = '<span class="chat-thinking">E.V.A. is thinking…</span>';
+        let answer = '';
+        let answerDiv = null;
+        sendBtn.disabled = true;
+
+        try {
+            const res = await fetch('/api/chat', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ message })
+            });
+            const reader = res.body.getReader();
+            const dec = new TextDecoder();
+            let buf = '';
+            for (;;) {
+                const { done, value } = await reader.read();
+                if (done) break;
+                buf += dec.decode(value, { stream: true });
+                let idx;
+                while ((idx = buf.indexOf('\n\n')) >= 0) {
+                    const raw = buf.slice(0, idx);
+                    buf = buf.slice(idx + 2);
+                    if (!raw.startsWith('data:')) continue;
+                    let ev;
+                    try { ev = JSON.parse(raw.slice(5)); } catch (e) { continue; }
+                    if (ev.type === 'tool') {
+                        const thinking = bubble.querySelector('.chat-thinking');
+                        if (thinking) thinking.remove();
+                        addToolChip(bubble, ev.name, ev.args);
+                    } else if (ev.type === 'delta') {
+                        answer += ev.text;
+                        if (!answerDiv) {
+                            const thinking = bubble.querySelector('.chat-thinking');
+                            if (thinking) thinking.remove();
+                            answerDiv = document.createElement('div');
+                            answerDiv.className = 'chat-answer';
+                            bubble.appendChild(answerDiv);
+                        }
+                        answerDiv.innerHTML = render(answer);
+                        log.scrollTop = log.scrollHeight;
+                    } else if (ev.type === 'error') {
+                        const thinking = bubble.querySelector('.chat-thinking');
+                        if (thinking) thinking.remove();
+                        if (!answerDiv) {
+                            answerDiv = document.createElement('div');
+                            answerDiv.className = 'chat-answer';
+                            bubble.appendChild(answerDiv);
+                        }
+                        answerDiv.innerHTML += '<p class="chat-error">⚠ ' + esc(ev.text) + '</p>';
+                    } else if (ev.type === 'done' && ev.trace_id) {
+                        const link = document.createElement('a');
+                        link.className = 'chat-trace-link';
+                        link.href = '/pipeline/' + ev.trace_id;
+                        link.dataset.tip = 'The glass box for this exact answer: every tool call, prompt, token and cost — fully inspectable.';
+                        link.textContent = '🔍 view pipeline trace';
+                        bubble.appendChild(link);
+                    }
+                }
+            }
+        } catch (e) {
+            bubble.innerHTML = '<p class="chat-error">⚠ Connection problem — please try again.</p>';
+        }
+        const thinking = bubble.querySelector('.chat-thinking');
+        if (thinking) thinking.remove();
+        sendBtn.disabled = false;
+        input.focus();
+    }
+
+    form.addEventListener('submit', (e) => {
+        e.preventDefault();
+        const msg = input.value.trim();
+        if (!msg) return;
+        input.value = '';
+        const sugg = document.getElementById('chat-sugg');
+        if (sugg) sugg.remove();
+        send(msg);
+    });
+
+    document.querySelectorAll('#chat-sugg button').forEach(b => {
+        b.addEventListener('click', () => {
+            input.value = b.textContent;
+            form.dispatchEvent(new Event('submit', { cancelable: true }));
+        });
+    });
+
+    document.getElementById('chat-clear').addEventListener('click', async () => {
+        await fetch('/api/chat/reset', { method: 'POST' });
+        log.innerHTML = '';
+        const bubble = addMsg('assistant');
+        bubble.textContent = 'Conversation cleared. What would you like to explore?';
+    });
+
+    // Prefill via /chat?q=... (e.g. "Ask E.V.A. to explain" from the pipeline viewer)
+    const prefill = new URLSearchParams(location.search).get('q');
+    if (prefill) {
+        input.value = prefill;
+        form.dispatchEvent(new Event('submit', { cancelable: true }));
+    }
+})();
+</script>
+
+{% endblock %}

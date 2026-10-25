@@ -1,0 +1,737 @@
+{% extends "base.html" %}
+{% block title %}Guide{% endblock %}
+{% block content %}
+
+{# Sheet name → live link to the real spreadsheet (falls back to plain text) #}
+{% macro sheetlink(name) %}
+{%- if sheet_urls.get(name) -%}
+<a href="{{ sheet_urls[name] }}" target="_blank" rel="noopener"
+   style="color:#C76BFF; text-decoration:none"
+   data-tip="Opens the real '{{ name }}' spreadsheet in a new tab — your Google account needs access">{{ name }} ↗</a>
+{%- else -%}
+{{ name }}
+{%- endif -%}
+{% endmacro %}
+
+<div class="hero">
+    <h1>The E.V.A. Guide</h1>
+    <p>Everything in this system, explained in one place — what each page does, how the pipeline
+       protects children's data, which AI is involved and under what terms, and what every
+       technical term means. Hover the dotted terms anywhere in the app for the short version;
+       this page is the long one.</p>
+    <span class="badge-privacy">Reading time ~18 minutes · no prior technical knowledge assumed, technical depth provided</span>
+</div>
+
+<!-- ============================ CONTENTS ============================ -->
+<div class="card wide" style="margin-bottom:22px">
+    <div class="card-head">
+        <div class="card-icon">🧭</div>
+        <div>
+            <h2 class="card-title">Contents</h2>
+            <p class="card-sub">Jump to a section</p>
+        </div>
+    </div>
+    <div class="chat-tools">
+        <a class="chat-tool-chip" href="#g-what">1 · What E.V.A. is</a>
+        <a class="chat-tool-chip" href="#g-data">2 · The data layer</a>
+        <a class="chat-tool-chip" href="#g-pipeline">3 · The report pipeline</a>
+        <a class="chat-tool-chip" href="#g-mech">4 · How each feature works</a>
+        <a class="chat-tool-chip" href="#g-anon">5 · Anonymization</a>
+        <a class="chat-tool-chip" href="#g-ai">6 · The AI layer</a>
+        <a class="chat-tool-chip" href="#g-memory">7 · Smart Memory</a>
+        <a class="chat-tool-chip" href="#g-tools">8 · Pages &amp; tools</a>
+        <a class="chat-tool-chip" href="#g-safety">9 · Safety &amp; oversight</a>
+        <a class="chat-tool-chip" href="#g-glossary">10 · Glossary</a>
+    </div>
+</div>
+
+<!-- ============================ 1 · WHAT ============================ -->
+<div class="card wide" id="g-what" style="margin-bottom:22px">
+    <div class="card-head">
+        <div class="card-icon">✨</div>
+        <div>
+            <h2 class="card-title">1 · What Bright E.V.A. is</h2>
+            <p class="card-sub">Evaluation Virtual Assistant — AI report writing for a school, engineered for children’s data</p>
+        </div>
+    </div>
+    <p class="exp-desc">Bright E.V.A. turns a school’s assessment forms into well-written progress
+       reports: per student, per lesson, per class group. An educator picks an ID, states what to
+       assess and in whose voice, and the system produces a grounded report in under two minutes.</p>
+    <p class="exp-desc">What makes it unusual is not that it uses AI — it is <b>how</b>. Four principles
+       govern every design decision:</p>
+    <table class="mini-table">
+        <tr><th>Principle</th><th>What it means in practice</th></tr>
+        <tr>
+            <td><b>Privacy first</b></td>
+            <td>The students are minors. A deterministic anonymizer masks every name, email and phone
+                number <em>before</em> any prompt is built. The AI only ever sees pseudonymous IDs
+                such as <span class="mono">demo02</span>.</td>
+        </tr>
+        <tr>
+            <td><b>Human in the loop</b></td>
+            <td>With Educator Override enabled, no report reaches the student record until an educator
+                explicitly approves, edits or rejects it. The decision itself is audited.</td>
+        </tr>
+        <tr>
+            <td><b>Glass box</b></td>
+            <td>Every run leaves a complete pipeline trace: data fetched, masks applied, exact prompts,
+                critic verdicts, cost, timing, risk signals. Nothing the AI did is uninspectable.</td>
+        </tr>
+        <tr>
+            <td><b>Grounded output</b></td>
+            <td>Reports must be traceable to real assessment data. A critic gate reviews each draft and
+                can reject and regenerate it; risk signals hunt for what slipped through.</td>
+        </tr>
+    </table>
+</div>
+
+<!-- ============================ 2 · DATA ============================ -->
+<div class="card wide" id="g-data" style="margin-bottom:22px">
+    <div class="card-head">
+        <div class="card-icon">📚</div>
+        <div>
+            <h2 class="card-title">2 · The data layer</h2>
+            <p class="card-sub">Google Sheets is the school’s database — deliberately</p>
+        </div>
+    </div>
+    <p class="exp-desc">There is no hidden database server. The school already lives in Google Sheets,
+       so E.V.A. treats those spreadsheets as the database: it reads assessment data from them and
+       writes reports back to them. This keeps the data where educators already understand it —
+       visible, editable, shareable through the tools they know.</p>
+    <table class="mini-table">
+        <tr><th>Sheet</th><th>What it holds</th><th>Who writes to it</th></tr>
+        <tr>
+            <td class="mono">{{ sheetlink('Students') }}</td>
+            <td>The registry: pseudonymous IDs, names, parent contacts, class group codes.</td>
+            <td>The school only. E.V.A. reads it to build the anonymizer’s vocabulary — it never writes here.</td>
+        </tr>
+        <tr>
+            <td class="mono">
+                {{ sheetlink('PreAssessment') }}<br>
+                {{ sheetlink('FoAssessment') }}<br>
+                {{ sheetlink('SelfAssessment') }}<br>
+                {{ sheetlink('PostAssessment') }}<br>
+                {{ sheetlink('LessonAssessment') }}
+            </td>
+            <td>The evaluation forms — scores, rubric marks (π.μ. / μ.μ.), free-text educator notes.
+                The formative form also captures the child's <b>psychological state</b>
+                (mood &amp; energy, Leuven-style) and a <b>collaboration breakdown</b>
+                (PISA-style), each scale paired with an observer's note.</td>
+            <td>Educators fill them in; E.V.A. only reads them.</td>
+        </tr>
+        <tr>
+            <td class="mono">{{ sheetlink('Lessons') }}</td>
+            <td>The lesson catalogue (subjects, titles, descriptions) and class-group schedule (day/time per group code).</td>
+            <td>The school only. E.V.A. reads it to resolve lesson and group codes.</td>
+        </tr>
+        <tr>
+            <td class="mono">{{ sheetlink('ReportsFile') }}</td>
+            <td>The archive of every saved report, with type, entity ID and date.</td>
+            <td>E.V.A. writes here — and only after the critic gate (and the educator, when approval mode is on).</td>
+        </tr>
+        <tr>
+            <td class="mono">{{ sheetlink('InsightsMemory') }}</td>
+            <td>Smart Memory: one distilled insight card per saved report (see §7).</td>
+            <td>E.V.A., together with the report save.</td>
+        </tr>
+        <tr>
+            <td class="mono">{{ sheetlink('StyleMemory') }}</td>
+            <td>Style profiles distilled in the Style Studio (see §8).</td>
+            <td>E.V.A., only when the educator saves a profile.</td>
+        </tr>
+        <tr>
+            <td class="mono">{{ sheetlink('RiskNotes') }}</td>
+            <td>Human risk observations reviewers registered while inspecting traces — the living register's raw material (see §9).</td>
+            <td>Reviewers, through the “Register a risk” form on any pipeline trace.</td>
+        </tr>
+    </table>
+    <p class="card-sub" style="margin:10px 0 0">The purple names open the actual spreadsheets in a new tab —
+       your Google account must have been granted access to view them.</p>
+    <p class="exp-desc" style="margin-top:10px"><b>Greek data keys.</b> Column headers, the rubric marks
+       <span class="mono">π.μ.</span> / <span class="mono">μ.μ.</span>, student IDs and class-group codes
+       (e.g. <span class="mono">ΜΓ1</span>) come straight from the school’s sheets and stay in Greek
+       forever — they are the keys the data is indexed by. Only the generated prose is in English,
+       enforced by an explicit language policy in every prompt.</p>
+</div>
+
+<!-- ============================ 3 · PIPELINE ============================ -->
+<div class="card wide" id="g-pipeline" style="margin-bottom:22px">
+    <div class="card-head">
+        <div class="card-icon">🔁</div>
+        <div>
+            <h2 class="card-title">3 · The report pipeline</h2>
+            <p class="card-sub">What actually happens between “Generate Report” and the finished text</p>
+        </div>
+    </div>
+    <div class="kv-grid">
+        <div class="kv"><span class="kv-k">📥 1 · Fetch</span><span class="kv-v">The student’s (or lesson’s, or group’s) rows are pulled from the relevant sheets. The whole Students registry is also loaded — as anonymizer vocabulary.</span></div>
+        <div class="kv"><span class="kv-k">🛡️ 2 · Scrub</span><span class="kv-v">The anonymizer replaces every name (including Greek genitive forms), email and phone with placeholders like [Student] and [email]. Pseudonymous IDs are never masked.</span></div>
+        <div class="kv"><span class="kv-k">🤖 3 · Summarize</span><span class="kv-v">Each assessment section is summarized by the AI — calls run in parallel, each seeing only anonymized slices.</span></div>
+        <div class="kv"><span class="kv-k">✍️ 4 · Synthesize</span><span class="kv-v">A final AI call composes the report from the summaries, your focus question, the narrator role, and the active style profile or built-in gold exemplar.</span></div>
+        <div class="kv"><span class="kv-k">🧐 5 · Critic gate</span><span class="kv-v">A separate AI review asks: does it answer the question? Is every claim grounded in the data? Is it PII-free? A fail triggers exactly one regeneration with feedback.</span></div>
+        <div class="kv"><span class="kv-k">🧠 6 · Distill</span><span class="kv-v">The approved report is compressed into a structured insight card — trajectory, trends, risk flags, evidence, takeaway.</span></div>
+        <div class="kv"><span class="kv-k">⚠️ 7 · Compare</span><span class="kv-v">The new card is compared with the entity’s previous one. A worsening trajectory or new risk flags fire an early warning; otherwise the system stays deliberately quiet.</span></div>
+        <div class="kv"><span class="kv-k">💾 8 · Save</span><span class="kv-v">With approval mode on, the report is staged as a dry-run and waits for the educator’s approve / edit / reject. Only then are ReportsFile and InsightsMemory written — together.</span></div>
+    </div>
+    <p class="exp-desc" style="margin-top:10px">Every one of these steps is recorded. Open any run under
+       <b>Pipeline</b> to see it exactly as it happened — including the raw prompts.</p>
+</div>
+
+<!-- ============================ 4 · MECHANICS ============================ -->
+<div class="card wide" id="g-mech" style="margin-bottom:22px">
+    <div class="card-head">
+        <div class="card-icon">⚙️</div>
+        <div>
+            <h2 class="card-title">4 · How each feature works</h2>
+            <p class="card-sub">The machinery behind the three report generators, ASK ME, the chat and the insight cards</p>
+        </div>
+    </div>
+    <p class="exp-desc">Section 3 described the report pipeline as eight steps. This section opens the
+       machinery: how each feature wires those steps together, where the AI actually sits (and where it
+       deliberately does <em>not</em>), and how memory is made. Read the diagrams left to right — every
+       arrow is real data moving, drawn from the actual code paths.</p>
+    <div class="fig-legend">
+        <span><i style="background:rgba(23,84,250,.3); border:1px solid #4D7CFE"></i>data store (Google Sheets)</span>
+        <span><i style="background:rgba(188,15,214,.28); border:1px solid #C76BFF"></i>AI call</span>
+        <span><i style="background:rgba(255,196,107,.22); border:1px solid #FFC46B"></i>gate / human decision</span>
+        <span><i style="background:rgba(61,220,151,.22); border:1px solid #3DDC97"></i>write / output</span>
+        <span><i style="background:rgba(255,255,255,.1); border:1px solid rgba(255,255,255,.3)"></i>deterministic code</span>
+    </div>
+
+    <!-- ============ FIG A · one spine, three fetch shapes ============ -->
+    <h3 class="fig-h">A · Student / Lesson / Class reports <span>— one spine, three fetch shapes</span></h3>
+    <figure class="fig">
+    <svg viewBox="0 0 980 460" role="img"
+         aria-label="Diagram: the three report generators differ only in how they fetch data; anonymization, parallel summarization, composition, critic and saving are one shared spine.">
+        <defs>
+            <marker id="arwA" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+                <path d="M0,0 L10,5 L0,10 z" fill="#8A7AB8"/>
+            </marker>
+        </defs>
+        <g font-family="Inter, 'Segoe UI', system-ui, sans-serif">
+            <!-- fetch: STUDENT -->
+            <rect x="16" y="20" width="264" height="156" rx="10" fill="rgba(23,84,250,0.08)" stroke="rgba(77,124,254,0.55)"/>
+            <text x="30" y="42" font-size="12" font-weight="700" fill="#9DB4FF">STUDENT REPORT</text>
+            <text x="30" y="58" font-size="10" fill="#A9A3D9">input: student ID + date + question + voice</text>
+            <g font-family="'JetBrains Mono', monospace" font-size="9.5" fill="#C9C2EE">
+                <text x="30" y="76">PreAssessment · parent, before start</text>
+                <text x="30" y="89.5">FoAssessment · teacher, all &lt; date</text>
+                <text x="30" y="103">SelfAssessment · child's own view</text>
+                <text x="30" y="116.5">PostAssessment · parent, after</text>
+                <text x="30" y="130">Students · registry (scrub vocabulary)</text>
+                <text x="30" y="143.5">Lessons · enrolled descriptions</text>
+            </g>
+            <!-- fetch: LESSON -->
+            <rect x="16" y="200" width="264" height="96" rx="10" fill="rgba(23,84,250,0.08)" stroke="rgba(77,124,254,0.55)"/>
+            <text x="30" y="222" font-size="12" font-weight="700" fill="#9DB4FF">LESSON REPORT</text>
+            <text x="30" y="238" font-size="10" fill="#A9A3D9">input: lesson prefix (ΜΓ) + date + question + voice</text>
+            <g font-family="'JetBrains Mono', monospace" font-size="9.5" fill="#C9C2EE">
+                <text x="30" y="254">Lessons tab1 · lesson description</text>
+                <text x="30" y="267.5">LessonAssessment · prefix ΜΓ, &lt; date</text>
+                <text x="30" y="281">+ whole-registry scrubber on notes</text>
+            </g>
+            <!-- fetch: CLASS -->
+            <rect x="16" y="320" width="264" height="96" rx="10" fill="rgba(23,84,250,0.08)" stroke="rgba(77,124,254,0.55)"/>
+            <text x="30" y="342" font-size="12" font-weight="700" fill="#9DB4FF">CLASS REPORT</text>
+            <text x="30" y="358" font-size="10" fill="#A9A3D9">input: group code (ΜΓ1) + date + question + voice</text>
+            <g font-family="'JetBrains Mono', monospace" font-size="9.5" fill="#C9C2EE">
+                <text x="30" y="374">Lessons tab2 · group title + description</text>
+                <text x="30" y="387.5">LessonAssessment · group = ΜΓ1, &lt; date</text>
+                <text x="30" y="401">+ whole-registry scrubber on notes</text>
+            </g>
+            <!-- spine nodes -->
+            <rect x="300" y="186" width="112" height="64" rx="10" fill="rgba(255,255,255,0.055)" stroke="rgba(255,255,255,0.25)"/>
+            <text x="356" y="214" font-size="12" font-weight="700" fill="#F4F2FF" text-anchor="middle">SCRUB</text>
+            <text x="356" y="232" font-size="9.5" fill="#A9A3D9" text-anchor="middle">names → [Student]</text>
+            <rect x="432" y="186" width="128" height="64" rx="10" fill="rgba(188,15,214,0.12)" stroke="rgba(199,107,255,0.55)"/>
+            <text x="496" y="214" font-size="12" font-weight="700" fill="#E9B8FF" text-anchor="middle">SUMMARIZE ×N</text>
+            <text x="496" y="232" font-size="9.5" fill="#A9A3D9" text-anchor="middle">parallel · one per row</text>
+            <rect x="580" y="186" width="132" height="64" rx="10" fill="rgba(188,15,214,0.12)" stroke="rgba(199,107,255,0.55)"/>
+            <text x="646" y="214" font-size="12" font-weight="700" fill="#E9B8FF" text-anchor="middle">COMPOSE</text>
+            <text x="646" y="232" font-size="9.5" fill="#A9A3D9" text-anchor="middle">+ style, role, question</text>
+            <rect x="732" y="186" width="96" height="64" rx="10" fill="rgba(255,196,107,0.10)" stroke="rgba(255,196,107,0.5)"/>
+            <text x="780" y="214" font-size="12" font-weight="700" fill="#FFC46B" text-anchor="middle">CRITIC</text>
+            <text x="780" y="232" font-size="9.5" fill="#A9A3D9" text-anchor="middle">fail → regen ×1</text>
+            <rect x="848" y="186" width="120" height="64" rx="10" fill="rgba(61,220,151,0.10)" stroke="rgba(61,220,151,0.5)"/>
+            <text x="908" y="214" font-size="12" font-weight="700" fill="#3DDC97" text-anchor="middle">SAVE</text>
+            <text x="908" y="232" font-size="9.5" fill="#A9A3D9" text-anchor="middle">ReportsFile + card</text>
+            <!-- arrows: fetch -> scrub -->
+            <line x1="280" y1="98" x2="296" y2="204" stroke="#8A7AB8" stroke-width="1.4" marker-end="url(#arwA)"/>
+            <line x1="280" y1="248" x2="296" y2="216" stroke="#8A7AB8" stroke-width="1.4" marker-end="url(#arwA)"/>
+            <line x1="280" y1="368" x2="296" y2="230" stroke="#8A7AB8" stroke-width="1.4" marker-end="url(#arwA)"/>
+            <text x="356" y="176" font-size="9.5" fill="#A9A3D9" text-anchor="middle">every row anonymized</text>
+            <!-- spine arrows -->
+            <line x1="412" y1="218" x2="428" y2="218" stroke="#8A7AB8" stroke-width="1.4" marker-end="url(#arwA)"/>
+            <line x1="560" y1="218" x2="576" y2="218" stroke="#8A7AB8" stroke-width="1.4" marker-end="url(#arwA)"/>
+            <line x1="712" y1="218" x2="728" y2="218" stroke="#8A7AB8" stroke-width="1.4" marker-end="url(#arwA)"/>
+            <line x1="828" y1="218" x2="844" y2="218" stroke="#8A7AB8" stroke-width="1.4" marker-end="url(#arwA)"/>
+            <!-- critic regenerate loop -->
+            <polyline points="780,250 780,274 646,274 646,254" fill="none" stroke="#FFC46B" stroke-width="1.2" stroke-dasharray="4 3" marker-end="url(#arwA)"/>
+            <text x="713" y="288" font-size="9.5" fill="#FFC46B" text-anchor="middle">critic fail → regenerate once with feedback</text>
+            <text x="16" y="446" font-size="10" fill="#6E6899">The run's entity — student ID, lesson prefix or group code — is what the saved report and the insight card key off.</text>
+        </g>
+    </svg>
+    <figcaption><b>The three generators differ only in the fetch</b> — which rows are pulled, for whom.
+        Everything after (anonymization, one parallel summarization call per assessment row, final
+        composition with style and role, the critic gate, the save) is a single shared spine, so every
+        guardrail applies to all three report types at once. Student reports use a per-student scrubber
+        (that child + their parent); lesson and class reports use the whole-registry scrubber because
+        teacher notes can mention any student.</figcaption>
+    </figure>
+
+    <!-- ============ FIG B · ASK ME ============ -->
+    <h3 class="fig-h">B · ASK ME <span>— answers built from saved reports, not raw sheets</span></h3>
+    <figure class="fig">
+    <svg viewBox="0 0 980 380" role="img"
+         aria-label="Diagram: ASK ME reads only the saved reports sheet, compiles and re-scrubs them, summarizes, then either creates a lesson plan, modifies one, or diagnoses a focus student against a comparison group. On Auto, a router reads the educator's free-form request and picks the pipeline itself; optional class, lesson and student filters narrow the evidence first.">
+        <defs>
+            <marker id="arwB" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+                <path d="M0,0 L10,5 L0,10 z" fill="#8A7AB8"/>
+            </marker>
+        </defs>
+        <g font-family="Inter, 'Segoe UI', system-ui, sans-serif">
+            <rect x="16" y="110" width="210" height="150" rx="10" fill="rgba(23,84,250,0.08)" stroke="rgba(77,124,254,0.55)"/>
+            <text x="30" y="134" font-size="12" font-weight="700" fill="#9DB4FF">ReportsFile</text>
+            <text x="30" y="150" font-size="10" fill="#A9A3D9">every saved, approved report</text>
+            <g font-family="'JetBrains Mono', monospace" font-size="9.5" fill="#C9C2EE">
+                <text x="30" y="170">type: Student</text>
+                <text x="30" y="185">type: Lesson</text>
+                <text x="30" y="200">type: Class</text>
+            </g>
+            <text x="30" y="226" font-size="9.5" fill="#FFC46B">compile → all-registry scrub</text>
+            <text x="30" y="242" font-size="9.5" fill="#A9A3D9">(old reports may name students)</text>
+            <!-- row 1 -->
+            <rect x="300" y="40" width="180" height="84" rx="10" fill="rgba(255,255,255,0.055)" stroke="rgba(255,255,255,0.25)"/>
+            <text x="314" y="62" font-size="11.5" font-weight="700" fill="#F4F2FF">CREATE LESSON PLAN</text>
+            <text x="314" y="80" font-size="9.5" fill="#A9A3D9">all 3 report types</text>
+            <text x="314" y="94" font-size="9.5" fill="#A9A3D9">template: lesson_plan_template.md (5E × PBL)</text>
+            <rect x="540" y="52" width="150" height="60" rx="10" fill="rgba(188,15,214,0.12)" stroke="rgba(199,107,255,0.55)"/>
+            <text x="615" y="78" font-size="11.5" font-weight="700" fill="#E9B8FF" text-anchor="middle">SUMMARIZE ×3</text>
+            <text x="615" y="96" font-size="9.5" fill="#A9A3D9" text-anchor="middle">one call per type</text>
+            <rect x="740" y="40" width="224" height="84" rx="10" fill="rgba(188,15,214,0.12)" stroke="rgba(199,107,255,0.55)"/>
+            <text x="754" y="62" font-size="11.5" font-weight="700" fill="#E9B8FF">COMBINED PLAN</text>
+            <text x="754" y="80" font-size="9.5" fill="#A9A3D9">question → objective,</text>
+            <text x="754" y="94" font-size="9.5" fill="#A9A3D9">materials, full lesson plan</text>
+            <!-- row 2 -->
+            <rect x="300" y="150" width="180" height="84" rx="10" fill="rgba(255,255,255,0.055)" stroke="rgba(255,255,255,0.25)"/>
+            <text x="314" y="172" font-size="11.5" font-weight="700" fill="#F4F2FF">MODIFY LESSON PLAN</text>
+            <text x="314" y="190" font-size="9.5" fill="#A9A3D9">Class reports only</text>
+            <text x="314" y="204" font-size="9.5" fill="#A9A3D9">template: real_lesson_plan.json</text>
+            <rect x="540" y="162" width="150" height="60" rx="10" fill="rgba(188,15,214,0.12)" stroke="rgba(199,107,255,0.55)"/>
+            <text x="615" y="188" font-size="11.5" font-weight="700" fill="#E9B8FF" text-anchor="middle">SUMMARIZE ×1</text>
+            <text x="615" y="206" font-size="9.5" fill="#A9A3D9" text-anchor="middle">the class picture</text>
+            <rect x="740" y="150" width="224" height="84" rx="10" fill="rgba(188,15,214,0.12)" stroke="rgba(199,107,255,0.55)"/>
+            <text x="754" y="172" font-size="11.5" font-weight="700" fill="#E9B8FF">MODIFIED PLAN</text>
+            <text x="754" y="190" font-size="9.5" fill="#A9A3D9">keeps the original theme</text>
+            <text x="754" y="204" font-size="9.5" fill="#A9A3D9">· lists what changed</text>
+            <!-- row 3 -->
+            <rect x="300" y="260" width="180" height="84" rx="10" fill="rgba(255,255,255,0.055)" stroke="rgba(255,255,255,0.25)"/>
+            <text x="314" y="282" font-size="11.5" font-weight="700" fill="#F4F2FF">FIND SOLUTION</text>
+            <text x="314" y="300" font-size="9.5" fill="#A9A3D9">1st picked ID = focus student</text>
+            <text x="314" y="314" font-size="9.5" fill="#A9A3D9">the rest = comparison group</text>
+            <rect x="540" y="272" width="150" height="60" rx="10" fill="rgba(188,15,214,0.12)" stroke="rgba(199,107,255,0.55)"/>
+            <text x="615" y="298" font-size="11.5" font-weight="700" fill="#E9B8FF" text-anchor="middle">SUMMARIZE ×2</text>
+            <text x="615" y="316" font-size="9.5" fill="#A9A3D9" text-anchor="middle">focus vs group</text>
+            <rect x="740" y="260" width="224" height="84" rx="10" fill="rgba(188,15,214,0.12)" stroke="rgba(199,107,255,0.55)"/>
+            <text x="754" y="282" font-size="11.5" font-weight="700" fill="#E9B8FF">DIAGNOSIS</text>
+            <text x="754" y="300" font-size="9.5" fill="#A9A3D9">compares focus vs group</text>
+            <text x="754" y="314" font-size="9.5" fill="#A9A3D9">· explains + recommends</text>
+            <!-- arrows -->
+            <line x1="226" y1="185" x2="296" y2="82" stroke="#8A7AB8" stroke-width="1.4" marker-end="url(#arwB)"/>
+            <line x1="226" y1="185" x2="296" y2="192" stroke="#8A7AB8" stroke-width="1.4" marker-end="url(#arwB)"/>
+            <line x1="226" y1="185" x2="296" y2="302" stroke="#8A7AB8" stroke-width="1.4" marker-end="url(#arwB)"/>
+            <line x1="480" y1="82" x2="536" y2="82" stroke="#8A7AB8" stroke-width="1.4" marker-end="url(#arwB)"/>
+            <line x1="690" y1="82" x2="736" y2="82" stroke="#8A7AB8" stroke-width="1.4" marker-end="url(#arwB)"/>
+            <line x1="480" y1="192" x2="536" y2="192" stroke="#8A7AB8" stroke-width="1.4" marker-end="url(#arwB)"/>
+            <line x1="690" y1="192" x2="736" y2="192" stroke="#8A7AB8" stroke-width="1.4" marker-end="url(#arwB)"/>
+            <line x1="480" y1="302" x2="536" y2="302" stroke="#8A7AB8" stroke-width="1.4" marker-end="url(#arwB)"/>
+            <line x1="690" y1="302" x2="736" y2="302" stroke="#8A7AB8" stroke-width="1.4" marker-end="url(#arwB)"/>
+            <text x="508" y="72" font-size="9" fill="#A9A3D9" text-anchor="middle">scrubbed</text>
+            <text x="713" y="72" font-size="9" fill="#A9A3D9" text-anchor="middle">summaries</text>
+            <text x="508" y="182" font-size="9" fill="#A9A3D9" text-anchor="middle">scrubbed</text>
+            <text x="713" y="182" font-size="9" fill="#A9A3D9" text-anchor="middle">summary</text>
+            <text x="508" y="292" font-size="9" fill="#A9A3D9" text-anchor="middle">scrubbed</text>
+            <text x="713" y="292" font-size="9" fill="#A9A3D9" text-anchor="middle">2 summaries</text>
+            <text x="300" y="364" font-size="10" fill="#6E6899">With save on, the result is itself stored in ReportsFile (type “Ask Me”) — later runs can build on it.</text>
+        </g>
+    </svg>
+    <figcaption><b>ASK ME never reads the raw assessment sheets.</b> It works one level up, over the reports
+        the school has already approved and saved: they are compiled, re-scrubbed with the whole-registry
+        vocabulary (old reports may predate anonymization), summarized, and only then compared or turned
+        into plans. The request is free-form — on <b>Auto</b>, a cheap routing pass reads it and picks the
+        pipeline (create / modify / find solution / general answer), recording the decision in the trace.
+        All scope filters are optional: picking a class group narrows the evidence to that class's reports
+        and its students before anything is summarized; leaving everything empty searches the whole archive.
+        The pick order still matters for Find Solution — the first ID you pick is the student under
+        examination, the rest become the comparison group.</figcaption>
+    </figure>
+
+    <!-- ============ FIG C · chat tool loop ============ -->
+    <h3 class="fig-h">C · Chat <span>— a tool loop, not a lookup</span></h3>
+    <figure class="fig">
+    <svg viewBox="0 0 980 400" role="img"
+         aria-label="Diagram: the chat model loops — it calls one of six local tools, the result is appended to the history, and after at most six steps it streams the final answer to the browser.">
+        <defs>
+            <marker id="arwC" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+                <path d="M0,0 L10,5 L0,10 z" fill="#8A7AB8"/>
+            </marker>
+        </defs>
+        <g font-family="Inter, 'Segoe UI', system-ui, sans-serif">
+            <rect x="16" y="58" width="86" height="48" rx="10" fill="rgba(255,255,255,0.055)" stroke="rgba(255,255,255,0.25)"/>
+            <text x="59" y="86" font-size="12" font-weight="700" fill="#F4F2FF" text-anchor="middle">YOU</text>
+            <rect x="170" y="46" width="170" height="72" rx="10" fill="rgba(188,15,214,0.12)" stroke="rgba(199,107,255,0.55)"/>
+            <text x="255" y="76" font-size="12" font-weight="700" fill="#E9B8FF" text-anchor="middle">CHAT LLM</text>
+            <text x="255" y="96" font-size="9.5" fill="#A9A3D9" text-anchor="middle">history + 6 tool schemas</text>
+            <polygon points="440,46 520,82 440,118 360,82" fill="rgba(255,196,107,0.10)" stroke="rgba(255,196,107,0.5)"/>
+            <text x="440" y="86" font-size="11" font-weight="700" fill="#FFC46B" text-anchor="middle">tool call?</text>
+            <rect x="560" y="24" width="404" height="220" rx="10" fill="rgba(255,255,255,0.04)" stroke="rgba(255,255,255,0.25)"/>
+            <text x="576" y="46" font-size="11" font-weight="700" fill="#F4F2FF">6 LOCAL TOOLS — pure Python, no AI inside</text>
+            <g font-family="'JetBrains Mono', monospace" font-size="9.5" fill="#C9C2EE">
+                <text x="576" y="74">get_student_overview → registry + scores + last card</text>
+                <text x="576" y="99">search_insights → keyword over insight cards</text>
+                <text x="576" y="124">get_class_climate → group assessments + cards</text>
+                <text x="576" y="149">compare_students → 2–8 overviews side by side</text>
+                <text x="576" y="174">generate_report → report spine as DRY-RUN</text>
+                <text x="576" y="199">get_lesson_plan → Google Drive lesson folders</text>
+            </g>
+            <text x="576" y="228" font-size="9.5" fill="#6E6899">every tool result is scrubbed before the model sees it</text>
+            <rect x="350" y="300" width="200" height="60" rx="10" fill="rgba(188,15,214,0.12)" stroke="rgba(199,107,255,0.55)"/>
+            <text x="450" y="326" font-size="12" font-weight="700" fill="#E9B8FF" text-anchor="middle">FINAL ANSWER</text>
+            <text x="450" y="344" font-size="9.5" fill="#A9A3D9" text-anchor="middle">forced after 6 steps max</text>
+            <rect x="120" y="300" width="170" height="60" rx="10" fill="rgba(255,255,255,0.055)" stroke="rgba(255,255,255,0.25)"/>
+            <text x="205" y="326" font-size="12" font-weight="700" fill="#F4F2FF" text-anchor="middle">YOUR BROWSER</text>
+            <text x="205" y="344" font-size="9.5" fill="#A9A3D9" text-anchor="middle">tokens stream live (SSE)</text>
+            <!-- arrows -->
+            <line x1="102" y1="82" x2="166" y2="82" stroke="#8A7AB8" stroke-width="1.4" marker-end="url(#arwC)"/>
+            <text x="134" y="72" font-size="9" fill="#A9A3D9" text-anchor="middle">question</text>
+            <line x1="340" y1="82" x2="356" y2="82" stroke="#8A7AB8" stroke-width="1.4" marker-end="url(#arwC)"/>
+            <line x1="520" y1="82" x2="556" y2="82" stroke="#8A7AB8" stroke-width="1.4" marker-end="url(#arwC)"/>
+            <text x="538" y="72" font-size="9" fill="#A9A3D9" text-anchor="middle">yes · name + args</text>
+            <polyline points="660,244 660,262 255,262 255,122" fill="none" stroke="#8A7AB8" stroke-width="1.4" marker-end="url(#arwC)"/>
+            <text x="455" y="254" font-size="10" fill="#A9A3D9" text-anchor="middle">tool result appended to history · repeats ≤ 6×</text>
+            <line x1="440" y1="118" x2="452" y2="296" stroke="#8A7AB8" stroke-width="1.4" marker-end="url(#arwC)"/>
+            <text x="505" y="200" font-size="9.5" fill="#A9A3D9">no — answer now</text>
+            <line x1="350" y1="330" x2="294" y2="330" stroke="#8A7AB8" stroke-width="1.4" marker-end="url(#arwC)"/>
+            <text x="322" y="352" font-size="9" fill="#A9A3D9" text-anchor="middle">SSE stream</text>
+            <text x="560" y="288" font-size="9.5" fill="#6E6899">every step recorded in the run's pipeline trace</text>
+        </g>
+    </svg>
+    <figcaption><b>The chat answers from data it fetches itself.</b> The model never sees the sheets — it
+        asks one of six local tools (deterministic Python over the data), the scrubbed result is appended
+        to the conversation, and the loop repeats at most six times before it must answer. Each tool call
+        appears as a chip in the chat UI, and the whole run gets its own pipeline trace. The
+        <span class="mono">generate_report</span> tool runs the full report spine as a dry-run — the chat
+        can show you a report, but it can never save one.</figcaption>
+    </figure>
+
+    <!-- ============ C.2 · the six tools up close ============ -->
+    <h3 class="fig-h">C.2 · The six tools up close <span>— what each one reads, what it returns, and how you trigger it</span></h3>
+    <p class="exp-desc">There is <b>no AI inside the tools</b> — each one is deterministic Python that reads a
+       specific data source, scrubs the result and hands it back as compact JSON/text. The only AI decisions
+       in the chat are (a) <em>which</em> tool to call with <em>what arguments</em> and (b) composing the final
+       answer from whatever came back. The tools read across all three data levels — the raw sheets (L0),
+       the saved reports (L1), the distilled insight cards (L2) — plus the school's Drive archive:</p>
+    <table class="mini-table">
+        <tr><th>Tool</th><th>Reads from</th><th>What it hands back to the model</th><th>You trigger it by asking…</th></tr>
+        <tr><td class="mono">get_student_overview</td>
+            <td>Students registry (L0) · FoAssessment scores (L0) · latest insight card (L2)</td>
+            <td>Age/class, group memberships, averages of the 5 formative dimensions (participation, comprehension, build, programming, collaboration), trend (last 3 vs first 3 sessions), up to 3 recent teacher notes, the latest insight card.</td>
+            <td>«How is demo02 doing?» · «Is demo05 improving this term?»</td></tr>
+        <tr><td class="mono">search_insights</td>
+            <td>InsightsMemory cards (L2)</td>
+            <td>Keyword/entity-matched cards: date, trajectory, cognitive and soft-skill notes, risk flags, early-warning alerts, takeaway.</td>
+            <td>«Which students show declining collaboration?» · «Any risk flags lately?»</td></tr>
+        <tr><td class="mono">get_class_climate</td>
+            <td>LessonAssessment sessions (L0) · Students registry (L0) · latest class card (L2)</td>
+            <td>Sessions assessed, average class response (1–5), average completion %, recent difficulties and notes, member IDs, the latest class insight.</td>
+            <td>«What's the climate of group ΜΓ1?» · «What difficulties came up in ΜΒ2 recently?»</td></tr>
+        <tr><td class="mono">compare_students</td>
+            <td>Same sources as the overview, ×2–8 students</td>
+            <td>Side-by-side table: formative averages, trend and latest trajectory per student.</td>
+            <td>«Compare demo02 and demo07» · «Who of these three struggles most with programming?»</td></tr>
+        <tr><td class="mono">generate_report</td>
+            <td>The full report spine (L0 → L1 pipeline) run as a <b>dry-run</b></td>
+            <td>A complete fresh report for one student, class or lesson — the same machinery as the home-page generators. Slow (~1 min), called only when you explicitly ask for a full report, and <b>never saved</b> anywhere.</td>
+            <td>«Generate a full report for demo05»</td></tr>
+        <tr><td class="mono">get_lesson_plan</td>
+            <td>The school's Google Drive lesson archive</td>
+            <td>The actual lesson outline (goals, phases, materials) for a track (ΜΒ, ΜΓ, ΜΔ, ΜΕ, ΜΛ) and lesson number — Google Docs exported as text, .docx parsed.</td>
+            <td>«What's covered in ΜΓ lesson 22?» · «Fetch lesson 5 of ΜΔ and suggest changes»</td></tr>
+    </table>
+    <p class="exp-desc" style="margin-top:14px">Three properties make the loop safe to trust. <b>Grounding:</b> the
+       system prompt forbids factual claims that did not come from a tool result, and students are referenced
+       by ID only — every tool result is scrubbed before the model sees it. <b>Boundedness:</b> the loop runs
+       at most 6 tool steps, then must answer; <span class="mono">generate_report</span> is always a dry-run,
+       so chatting can never write to the school's sheets. <b>Transparency:</b> each tool call appears as a chip
+       in the chat UI and the whole run leaves a pipeline trace you can open from the answer.</p>
+    <p class="exp-desc"><b>Chat or ASK ME?</b> They answer different needs. The <b>chat</b> is interactive and
+       quick: live facts, comparisons, follow-ups («…and how does that compare with demo07?» — it remembers the
+       conversation; <b>Clear</b> resets it), and it can reach the Drive lesson plans — but it saves nothing.
+       <b>ASK ME</b> is the opposite: one shot, over the <em>saved reports</em> only, producing a document you
+       can archive to ReportsFile with the save switch. Rule of thumb: exploring → chat; producing something
+       to keep → ASK ME.</p>
+
+    <!-- ============ FIG D · insight cards ============ -->
+    <h3 class="fig-h">D · Insight cards <span>— how Smart Memory is written, compared and read</span></h3>
+    <figure class="fig">
+    <svg viewBox="0 0 980 400" role="img"
+         aria-label="Diagram: each saved report is distilled by one cheap AI call into a structured insight card appended to the InsightsMemory sheet; the new card is compared with the entity's previous card and a worsening fires an early warning; chat and ASK ME read the cards first.">
+        <defs>
+            <marker id="arwD" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+                <path d="M0,0 L10,5 L0,10 z" fill="#8A7AB8"/>
+            </marker>
+        </defs>
+        <g font-family="Inter, 'Segoe UI', system-ui, sans-serif">
+            <rect x="16" y="40" width="150" height="56" rx="10" fill="rgba(61,220,151,0.10)" stroke="rgba(61,220,151,0.5)"/>
+            <text x="91" y="64" font-size="11.5" font-weight="700" fill="#3DDC97" text-anchor="middle">SAVED REPORT</text>
+            <text x="91" y="82" font-size="9.5" fill="#A9A3D9" text-anchor="middle">L1 · critic-approved</text>
+            <rect x="226" y="40" width="170" height="56" rx="10" fill="rgba(188,15,214,0.12)" stroke="rgba(199,107,255,0.55)"/>
+            <text x="311" y="64" font-size="11.5" font-weight="700" fill="#E9B8FF" text-anchor="middle">REFLECTION</text>
+            <text x="311" y="82" font-size="9.5" fill="#A9A3D9" text-anchor="middle">one cheap AI call</text>
+            <rect x="446" y="20" width="220" height="130" rx="10" fill="rgba(188,15,214,0.07)" stroke="rgba(199,107,255,0.55)"/>
+            <text x="460" y="42" font-size="11.5" font-weight="700" fill="#E9B8FF">INSIGHT CARD</text>
+            <g font-family="'JetBrains Mono', monospace" font-size="9.5" fill="#C9C2EE">
+                <text x="460" y="62">trajectory — improving…declining</text>
+                <text x="460" y="77.5">cognitive_trend</text>
+                <text x="460" y="93">soft_skill_trend</text>
+                <text x="460" y="108.5">risk_flags — the watch list</text>
+                <text x="460" y="124">evidence — 2–3 data points</text>
+                <text x="460" y="139.5">takeaway — one sentence</text>
+            </g>
+            <rect x="716" y="20" width="248" height="130" rx="10" fill="rgba(23,84,250,0.08)" stroke="rgba(77,124,254,0.55)"/>
+            <text x="730" y="42" font-size="11.5" font-weight="700" fill="#9DB4FF">InsightsMemory — the L2 sheet</text>
+            <g font-family="'JetBrains Mono', monospace" font-size="9" fill="#C9C2EE">
+                <text x="730" y="62">Creation Date · type · entity</text>
+                <text x="730" y="76.5">trajectory · trends · risk flags</text>
+                <text x="730" y="91">Alert · evidence · takeaway</text>
+                <text x="730" y="105.5">one row per saved report</text>
+            </g>
+            <line x1="166" y1="68" x2="222" y2="68" stroke="#8A7AB8" stroke-width="1.4" marker-end="url(#arwD)"/>
+            <text x="194" y="58" font-size="9" fill="#A9A3D9" text-anchor="middle">distil</text>
+            <line x1="396" y1="68" x2="442" y2="68" stroke="#8A7AB8" stroke-width="1.4" marker-end="url(#arwD)"/>
+            <text x="419" y="58" font-size="9" fill="#A9A3D9" text-anchor="middle">JSON</text>
+            <line x1="666" y1="85" x2="712" y2="85" stroke="#8A7AB8" stroke-width="1.4" marker-end="url(#arwD)"/>
+            <text x="689" y="75" font-size="9" fill="#A9A3D9" text-anchor="middle">append</text>
+            <!-- compare lane -->
+            <rect x="446" y="210" width="220" height="56" rx="10" fill="rgba(255,255,255,0.055)" stroke="rgba(255,255,255,0.25)"/>
+            <text x="556" y="234" font-size="11.5" font-weight="700" fill="#F4F2FF" text-anchor="middle">COMPARE</text>
+            <text x="556" y="252" font-size="9.5" fill="#A9A3D9" text-anchor="middle">vs entity's previous card</text>
+            <rect x="716" y="210" width="220" height="56" rx="10" fill="rgba(255,196,107,0.10)" stroke="rgba(255,196,107,0.5)"/>
+            <text x="826" y="234" font-size="11.5" font-weight="700" fill="#FFC46B" text-anchor="middle">EARLY WARNING</text>
+            <text x="826" y="252" font-size="9" fill="#A9A3D9" text-anchor="middle">stored in the row's Alert column</text>
+            <line x1="556" y1="150" x2="556" y2="206" stroke="#8A7AB8" stroke-width="1.4" marker-end="url(#arwD)"/>
+            <text x="566" y="182" font-size="9.5" fill="#A9A3D9">new card</text>
+            <polyline points="840,150 840,184 660,184 660,206" fill="none" stroke="#8A7AB8" stroke-width="1.4" marker-end="url(#arwD)"/>
+            <text x="750" y="176" font-size="9.5" fill="#A9A3D9" text-anchor="middle">previous card, same entity</text>
+            <line x1="666" y1="238" x2="712" y2="238" stroke="#8A7AB8" stroke-width="1.4" marker-end="url(#arwD)"/>
+            <text x="689" y="228" font-size="9" fill="#A9A3D9" text-anchor="middle">worse? new flags?</text>
+            <!-- read lane -->
+            <rect x="16" y="320" width="220" height="56" rx="10" fill="rgba(188,15,214,0.12)" stroke="rgba(199,107,255,0.55)"/>
+            <text x="126" y="344" font-size="11" font-weight="700" fill="#E9B8FF" text-anchor="middle">CHAT · ASK ME · OVERVIEWS</text>
+            <text x="126" y="362" font-size="9" fill="#A9A3D9" text-anchor="middle">the readers of memory</text>
+            <polyline points="236,348 952,348 952,154" fill="none" stroke="#8A7AB8" stroke-width="1.4" marker-end="url(#arwD)"/>
+            <text x="594" y="338" font-size="10" fill="#A9A3D9" text-anchor="middle">reads cards first — full reports pulled only on demand</text>
+        </g>
+    </svg>
+    <figcaption><b>Smart Memory is a second aggregation.</b> Raw assessments (L0) become reports (L1);
+        each saved report is distilled once into a compact card (L2) holding only trajectory, trends, risk
+        flags, evidence and takeaway. Readers — the chat, the overview tool — search the small cards first
+        and open full reports only when a card matches. And because every new card is compared with the
+        entity's previous one, a quiet decline becomes an explicit alert (TRAJECTORY WORSENED · DECLINE
+        CONTINUES · NEW RISK FLAGS) instead of a surprise at the next parent meeting.</figcaption>
+    </figure>
+
+    <!-- ============ FIG E · educator override ============ -->
+    <h3 class="fig-h">E · Educator Override <span>— the human gate around saving</span></h3>
+    <figure class="fig">
+    <svg viewBox="0 0 980 240" role="img"
+         aria-label="Diagram: with approval mode on, generation runs as a staged dry-run and waits; the educator approves, edits — which re-runs the critic — or rejects, and the decision is appended to the pipeline trace.">
+        <defs>
+            <marker id="arwE" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+                <path d="M0,0 L10,5 L0,10 z" fill="#8A7AB8"/>
+            </marker>
+        </defs>
+        <g font-family="Inter, 'Segoe UI', system-ui, sans-serif">
+            <rect x="16" y="92" width="170" height="56" rx="10" fill="rgba(255,255,255,0.055)" stroke="rgba(255,255,255,0.25)"/>
+            <text x="101" y="116" font-size="11.5" font-weight="700" fill="#F4F2FF" text-anchor="middle">GENERATE</text>
+            <text x="101" y="134" font-size="9.5" fill="#A9A3D9" text-anchor="middle">staged as dry-run</text>
+            <rect x="246" y="92" width="150" height="56" rx="10" fill="rgba(255,255,255,0.055)" stroke="rgba(255,255,255,0.25)"/>
+            <text x="321" y="116" font-size="11.5" font-weight="700" fill="#F4F2FF" text-anchor="middle">PENDING</text>
+            <text x="321" y="134" font-size="9.5" fill="#A9A3D9" text-anchor="middle">nothing written yet</text>
+            <polygon points="520,66 604,120 520,174 436,120" fill="rgba(255,196,107,0.10)" stroke="rgba(255,196,107,0.5)"/>
+            <text x="520" y="114" font-size="11" font-weight="700" fill="#FFC46B" text-anchor="middle">educator</text>
+            <text x="520" y="128" font-size="11" font-weight="700" fill="#FFC46B" text-anchor="middle">decides</text>
+            <rect x="680" y="30" width="284" height="40" rx="10" fill="rgba(61,220,151,0.10)" stroke="rgba(61,220,151,0.5)"/>
+            <text x="694" y="54" font-size="11" font-weight="600" fill="#3DDC97">APPROVE — report + insight card saved</text>
+            <rect x="680" y="100" width="284" height="40" rx="10" fill="rgba(61,220,151,0.10)" stroke="rgba(61,220,151,0.5)"/>
+            <text x="694" y="124" font-size="11" font-weight="600" fill="#3DDC97">EDIT — re-critic on your text, then saved</text>
+            <rect x="680" y="170" width="284" height="40" rx="10" fill="rgba(255,92,122,0.10)" stroke="rgba(255,92,122,0.5)"/>
+            <text x="694" y="194" font-size="11" font-weight="600" fill="#FF5C7A">REJECT — nothing is written</text>
+            <line x1="186" y1="120" x2="242" y2="120" stroke="#8A7AB8" stroke-width="1.4" marker-end="url(#arwE)"/>
+            <line x1="396" y1="120" x2="432" y2="120" stroke="#8A7AB8" stroke-width="1.4" marker-end="url(#arwE)"/>
+            <line x1="604" y1="120" x2="676" y2="50" stroke="#8A7AB8" stroke-width="1.4" marker-end="url(#arwE)"/>
+            <line x1="604" y1="120" x2="676" y2="120" stroke="#8A7AB8" stroke-width="1.4" marker-end="url(#arwE)"/>
+            <line x1="604" y1="120" x2="676" y2="190" stroke="#8A7AB8" stroke-width="1.4" marker-end="url(#arwE)"/>
+            <text x="640" y="42" font-size="9.5" fill="#A9A3D9" text-anchor="middle">yes</text>
+            <text x="640" y="110" font-size="9.5" fill="#A9A3D9" text-anchor="middle">edit</text>
+            <text x="640" y="182" font-size="9.5" fill="#A9A3D9" text-anchor="middle">no</text>
+            <text x="16" y="226" font-size="10" fill="#6E6899">Either way, the decision is appended to the same pipeline trace — who decided what, and when (the audit trail).</text>
+        </g>
+    </svg>
+    <figcaption><b>With approval mode on, generation runs entirely under a dry-run guard</b> — the write
+        path itself is blocked at the data layer, so nothing can reach the sheets by accident, not even
+        through a bug. The staged report waits for a human decision; an edit goes through the critic
+        again before saving, and the decision joins the run's audit trail.</figcaption>
+    </figure>
+</div>
+
+<!-- ============================ 5 · ANONYMIZATION ============================ -->
+<div class="card wide" id="g-anon" style="margin-bottom:22px">
+    <div class="card-head">
+        <div class="card-icon">🛡️</div>
+        <div>
+            <h2 class="card-title">5 · Anonymization — the GDPR core</h2>
+            <p class="card-sub">How personal data is kept away from the AI</p>
+        </div>
+    </div>
+    <p class="exp-desc">The anonymizer is <b>deterministic</b> — not an AI guessing what looks like a name.
+       It is built from the Students registry itself: every known student and parent name (plus their
+       Greek genitive forms, e.g. “του Νίκου”), every email pattern, every phone pattern. Because the
+       vocabulary comes from the registry, even names of <em>other</em> students mentioned in a note are caught.</p>
+    <table class="mini-table">
+        <tr><th>In the sheets</th><th>What the AI receives</th></tr>
+        <tr><td>Student &amp; parent names (any inflection)</td><td class="mono">[Student] · [Parent]</td></tr>
+        <tr><td>Email addresses</td><td class="mono">[email]</td></tr>
+        <tr><td>Phone numbers</td><td class="mono">[phone]</td></tr>
+        <tr><td>Pseudonymous IDs (demo02), Greek headers, π.μ./μ.μ., group codes</td><td>passed through unchanged — they identify nothing on their own</td></tr>
+    </table>
+    <p class="exp-desc" style="margin-top:10px">The same scrubber guards every path to the AI: report
+       generation, the chat’s tool results, and even Style Studio examples <em>before</em> distillation.
+       Pipeline traces show a before/after sample of what was masked in each run, and the critic gate
+       performs a second, independent PII check on the finished report — defense in depth.</p>
+</div>
+
+<!-- ============================ 6 · AI LAYER ============================ -->
+<div class="card wide" id="g-ai" style="margin-bottom:22px">
+    <div class="card-head">
+        <div class="card-icon">🤖</div>
+        <div>
+            <h2 class="card-title">6 · The AI layer</h2>
+            <p class="card-sub">OpenRouter as the gateway — switchable models, visible terms, visible cost</p>
+        </div>
+    </div>
+    <p class="exp-desc">All AI calls go through <b>OpenRouter</b>, an API gateway that fronts many model
+       providers (OpenAI, Google, Anthropic and others). The model picker in the sidebar is a live list
+       from OpenRouter: switching models changes every future run, and each pipeline trace records
+       exactly which model was used, who provides it, and a link to that provider’s data policy.</p>
+    <div class="kv-grid">
+        <div class="kv"><span class="kv-k">Data terms</span><span class="kv-v">Every trace shows the provider’s data-usage terms next to the model, with a policy link. Prompts carry anonymized data only — but the terms are shown so nothing is taken on faith.</span></div>
+        <div class="kv"><span class="kv-k">Cost transparency</span><span class="kv-v">Traces estimate cost from token counts × live OpenRouter prices (cached 6h), per model and per run. Education budgets should never be surprised.</span></div>
+        <div class="kv"><span class="kv-k">Language policy</span><span class="kv-v">Every prompt begins with an explicit instruction: report prose in English, while Greek headers, IDs, π.μ./μ.μ. and group codes must be preserved verbatim as data keys.</span></div>
+        <div class="kv"><span class="kv-k">Style control</span><span class="kv-v">Final prompts embed a gold exemplar — or your own distilled style profile — with a hard rule: imitate the shape, never the example’s content.</span></div>
+    </div>
+</div>
+
+<!-- ============================ 7 · MEMORY ============================ -->
+<div class="card wide" id="g-memory" style="margin-bottom:22px">
+    <div class="card-head">
+        <div class="card-icon">🧠</div>
+        <div>
+            <h2 class="card-title">7 · Smart Memory (L2)</h2>
+            <p class="card-sub">From isolated reports to a longitudinal picture of each student</p>
+        </div>
+    </div>
+    <p class="exp-desc">A single report says how a student did <em>today</em>. Smart Memory turns saved
+       reports into a trajectory. Each approved report is distilled into a compact <b>insight card</b>:</p>
+    <table class="mini-table">
+        <tr><th>Card field</th><th>Meaning</th></tr>
+        <tr><td class="mono">trajectory</td><td>One word — improving, stable, declining.</td></tr>
+        <tr><td class="mono">trends</td><td>The few patterns that matter, each tied to evidence.</td></tr>
+        <tr><td class="mono">risk_flags</td><td>Concerns worth watching (e.g. disengagement, collaboration friction).</td></tr>
+        <tr><td class="mono">evidence</td><td>The concrete observations backing every claim.</td></tr>
+        <tr><td class="mono">takeaway</td><td>One sentence an educator should remember.</td></tr>
+    </table>
+    <p class="exp-desc" style="margin-top:10px">Cards pass the same critic gate as reports before storage.
+       Each new card is then compared with the previous one: a worsening trajectory or a new risk flag
+       fires an <b>early warning</b> — the difference between a folder of reports and a safety net that
+       notices a student quietly disengaging over weeks.</p>
+</div>
+
+<!-- ============================ 8 · TOOLS ============================ -->
+<div class="card wide" id="g-tools" style="margin-bottom:22px">
+    <div class="card-head">
+        <div class="card-icon">🧰</div>
+        <div>
+            <h2 class="card-title">8 · Pages &amp; tools</h2>
+            <p class="card-sub">What each part of the app is for</p>
+        </div>
+    </div>
+    <table class="mini-table">
+        <tr><th>Page</th><th>What it does</th></tr>
+        <tr><td><b>Student / Lesson / Class Report</b></td><td>The three generators on the home page. Pick an ID, a focus (“what to assess”), a narrator voice — get a grounded report. “Run for all students” batch-generates, one pipeline run each.</td></tr>
+        <tr><td><b>ASK ME</b></td><td>Smart queries over <em>saved</em> reports. Write the request in plain words (“a lesson plan for the class’s biggest weaknesses”, “adapt the lesson for this class”) — on Auto, E.V.A. routes it to the right pipeline: create or modify a lesson plan, “Find Solution” (one student vs. the class), or a general grounded answer. Class, lesson and student filters are all optional and simply narrow the evidence.</td></tr>
+        <tr><td><b>Chat</b></td><td>Free-form questions. E.V.A. calls data tools (student profile, group climate, lesson content, comparisons) and answers strictly from what they return — every tool call is shown as a chip, and each answer links to its full pipeline trace.</td></tr>
+        <tr><td><b>Style Studio</b></td><td>Teach the system your report style: paste an example report and/or plain instructions. One AI call distills them into a ≤250-word style profile; you review, edit and save it. Examples are anonymized before distillation and never stored.</td></tr>
+        <tr><td><b>Pipeline</b></td><td>The glass box: every run with its data sources, masks, prompts, critic verdicts, memory writes, cost, timing and automated risk signals — plus a “Register a risk” form for human reviewers.</td></tr>
+        <tr><td><b>Risk Register</b></td><td>The living register: ten baseline risks (R1–R10) with their mitigations and the regulations they answer to — plus every observation reviewers registered on real traces, and unlisted risks gathering as candidates for the next revision.</td></tr>
+    </table>
+</div>
+
+<!-- ============================ 9 · SAFETY ============================ -->
+<div class="card wide" id="g-safety" style="margin-bottom:22px">
+    <div class="card-head">
+        <div class="card-icon">🔐</div>
+        <div>
+            <h2 class="card-title">9 · Safety &amp; oversight</h2>
+            <p class="card-sub">Layered — no single mechanism is trusted alone</p>
+        </div>
+    </div>
+    <div class="kv-grid">
+        <div class="kv"><span class="kv-k">Layer 1 · Anonymizer</span><span class="kv-v">Deterministic masking before any prompt exists. Registry-derived vocabulary catches even other students’ names.</span></div>
+        <div class="kv"><span class="kv-k">Layer 2 · Critic gate</span><span class="kv-v">Independent AI review of every report: grounding, question coverage, PII re-check. Fail → one regeneration with feedback.</span></div>
+        <div class="kv"><span class="kv-k">Layer 3 · Educator Override</span><span class="kv-v">With approval mode on, reports are staged under a dry-run; only an explicit human decision writes anything. The decision joins the audit trail.</span></div>
+        <div class="kv"><span class="kv-k">Layer 4 · Dry-run guard</span><span class="kv-v">Experiments and staged reports are write-blocked at the data layer itself — safety by construction, not by convention.</span></div>
+        <div class="kv"><span class="kv-k">Layer 5 · Risk signals</span><span class="kv-v">A deterministic second look over every trace: anonymizer off, gate skipped, silent fallbacks, ungrounded figures, quasi-identifiers, community-hosted models.</span></div>
+        <div class="kv"><span class="kv-k">Layer 6 · Glass box</span><span class="kv-v">Complete traces make every layer inspectable — by the school, by auditors, by researchers.</span></div>
+    </div>
+    <p class="exp-desc" style="margin-top:10px">The design assumption is that <b>every layer can fail</b> —
+       which is why the register is alive: reviewers hunting on real traces register what they find,
+       and the Risk Register documents honestly what remains hard (one model judging another shares
+       its blind spots; pseudonyms are not anonymity in a small class).</p>
+</div>
+
+<!-- ============================ 10 · GLOSSARY ============================ -->
+<div class="card wide" id="g-glossary">
+    <div class="card-head">
+        <div class="card-icon">📖</div>
+        <div>
+            <h2 class="card-title">10 · Glossary</h2>
+            <p class="card-sub">The terms you will meet across the app</p>
+        </div>
+    </div>
+    <table class="mini-table">
+        <tr><th>Term</th><th>Meaning</th></tr>
+        <tr><td><b>Pipeline trace</b></td><td>The complete, immutable record of one run — events, prompts, verdicts, timings — written to disk as JSONL and rendered by the Pipeline pages.</td></tr>
+        <tr><td><b>Dry-run</b></td><td>A run whose writes are blocked at the data layer. Used by Risk Lab experiments and staged educator approvals.</td></tr>
+        <tr><td><b>Anonymizer / scrubber</b></td><td>The deterministic component that masks names, emails and phones before any AI call. “Scrub vocabulary” = the registry-derived list of what to mask.</td></tr>
+        <tr><td><b>Pseudonymous ID</b></td><td>An identifier like <span class="mono">demo02</span> that stands for a student without naming them. Not masked — but combined with date and group it narrows down a child (see “quasi-identifier”).</td></tr>
+        <tr><td><b>PII</b></td><td>Personally Identifiable Information — anything that can identify a child: names, contacts, or enough combined detail.</td></tr>
+        <tr><td><b>Quasi-identifier</b></td><td>Data harmless alone (ID + date + class group) that identifies someone when combined — why pseudonyms are not anonymity.</td></tr>
+        <tr><td><b>Critic gate</b></td><td>The AI review step that must pass a report before it may be saved; rejection triggers one regeneration.</td></tr>
+        <tr><td><b>Insight card</b></td><td>The structured Smart Memory record distilled from each saved report (trajectory, trends, risk flags, evidence, takeaway).</td></tr>
+        <tr><td><b>Early warning</b></td><td>The alert fired when a new insight card shows a worsening trajectory or new risk flags versus the previous card.</td></tr>
+        <tr><td><b>Grounding</b></td><td>The property that every claim in a report traces back to real assessment data — what the critic gate and the “unfound figures” risk signal check.</td></tr>
+        <tr><td><b>Style profile</b></td><td>The ≤250-word distillation of a report style (from an example and/or instructions), stored in StyleMemory and injected into final prompts.</td></tr>
+        <tr><td><b>Gold exemplar</b></td><td>The built-in default style sample used when no custom style profile exists.</td></tr>
+        <tr><td><b>OpenRouter</b></td><td>The API gateway through which all AI models are called — provides the model picker list, pricing and per-provider data policies.</td></tr>
+        <tr><td><b>Token</b></td><td>The billing unit of AI models (~¾ of a word). Traces report prompt and completion tokens per call.</td></tr>
+        <tr><td><b>Educator Override</b></td><td>Approval mode: nothing is saved until an educator approves, edits or rejects the staged report.</td></tr>
+        <tr><td><b>π.μ. / μ.μ.</b></td><td>The school’s Greek rubric marks in assessment sheets — data keys, kept in Greek in every prompt and report.</td></tr>
+        <tr><td><b>Group codes</b></td><td>Class-group identifiers like <span class="mono">ΜΓ1</span> — data keys, kept in Greek.</td></tr>
+        <tr><td><b>Risk signal</b></td><td>An automated, deterministic flag on a trace (danger / warn / info) pointing at something a human should examine, linked to the Risk Register.</td></tr>
+        <tr><td><b>Risk lens</b></td><td>The auditor questions shown under each pipeline stage — what to doubt, not just what happened.</td></tr>
+        <tr><td><b>ENGLISH_ONLY</b></td><td>The language-policy preamble prepended to every prompt: prose in English, Greek data keys preserved verbatim.</td></tr>
+    </table>
+</div>
+
+{% endblock %}

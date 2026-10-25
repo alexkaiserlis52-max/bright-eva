@@ -1,0 +1,40 @@
+{% extends "base.html" %}
+{% block title %}{{ type }} Report{% endblock %}
+{% block content %}
+
+<div class="report-head">
+    <span class="chip brand">{{ type }} Report</span>
+    <span class="chip mono">{{ name }}</span>
+    <span class="chip">📅 {{ date }}</span>
+</div>
+
+<div class="report-card">
+    <div class="report-body">{{ report }}</div>
+
+    <div class="report-actions">
+        <form action="/generate_html" method="POST" data-eva-loading>
+            <button type="submit" class="btn btn-primary btn-sm">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3l1.9 5.1L19 10l-5.1 1.9L12 17l-1.9-5.1L5 10l5.1-1.9z"/></svg>
+                Format as HTML
+            </button>
+        </form>
+        <button class="btn btn-ghost btn-sm" style="margin-top:0" onclick="window.print()">🖨️ Print</button>
+        {% if trace_id %}
+        <a class="btn btn-ghost btn-sm" style="margin-top:0" href="{{ url_for('pipeline_detail', run_id=trace_id) }}">🔍 View pipeline trace</a>
+        {% endif %}
+        <a class="btn btn-ghost btn-sm" style="margin-top:0" href="{{ url_for('main') }}">← Back to hub</a>
+    </div>
+</div>
+
+{% if log %}
+<details class="log-block" style="margin-top:20px">
+    <summary>Activity log</summary>
+    <ul>
+        {% for entry in log %}
+        <li>{{ entry }}</li>
+        {% endfor %}
+    </ul>
+</details>
+{% endif %}
+
+{% endblock %}

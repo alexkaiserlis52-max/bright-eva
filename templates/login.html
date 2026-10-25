@@ -1,0 +1,126 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sign in — Bright E.V.A.</title>
+    <link rel="icon" type="image/svg+xml" href="{{ url_for('static', filename='eva_mark.svg') }}">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800&display=swap" rel="stylesheet">
+    <style>
+        body, html {
+            height: 100%;
+            margin: 0;
+            font-family: 'Inter', system-ui, sans-serif;
+            color: #F4F2FF;
+            background:
+                radial-gradient(ellipse 60% 45% at 15% 10%, rgba(188, 15, 214, 0.32), transparent 65%),
+                radial-gradient(ellipse 55% 45% at 85% 90%, rgba(23, 84, 250, 0.28), transparent 65%),
+                #0B0620;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+        .login-card {
+            width: 360px;
+            padding: 42px 38px;
+            text-align: center;
+            background: rgba(255, 255, 255, 0.055);
+            backdrop-filter: blur(16px);
+            -webkit-backdrop-filter: blur(16px);
+            border: 1px solid rgba(255, 255, 255, 0.12);
+            border-radius: 22px;
+            box-shadow: 0 20px 60px rgba(3, 0, 20, 0.55);
+            animation: fadeUp 0.7s ease both;
+        }
+        .mark {
+            width: 64px;
+            height: 64px;
+            margin-bottom: 14px;
+            filter: drop-shadow(0 8px 26px rgba(123, 47, 247, 0.6));
+        }
+        h1 {
+            margin: 0 0 4px;
+            font-size: 24px;
+            font-weight: 800;
+            letter-spacing: -0.02em;
+            background: linear-gradient(90deg, #E9B8FF, #9DB4FF);
+            -webkit-background-clip: text;
+            background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+        .sub {
+            font-size: 12px;
+            color: #6E6899;
+            letter-spacing: 0.14em;
+            text-transform: uppercase;
+            margin-bottom: 26px;
+        }
+        input[type="password"] {
+            width: 100%;
+            padding: 13px 15px;
+            margin-bottom: 14px;
+            border-radius: 12px;
+            border: 1px solid rgba(255, 255, 255, 0.12);
+            background: rgba(9, 5, 28, 0.55);
+            color: #F4F2FF;
+            font-size: 15px;
+            font-family: inherit;
+            outline: none;
+            box-sizing: border-box;
+            transition: border-color 0.18s ease, box-shadow 0.18s ease;
+        }
+        input[type="password"]:focus {
+            border-color: rgba(188, 15, 214, 0.55);
+            box-shadow: 0 0 0 3px rgba(188, 15, 214, 0.18);
+        }
+        input::placeholder { color: #6E6899; }
+        button {
+            width: 100%;
+            padding: 13px;
+            border: none;
+            border-radius: 12px;
+            background: linear-gradient(135deg, #BC0FD6 0%, #7B2FF7 50%, #1754FA 100%);
+            color: #fff;
+            font-size: 15px;
+            font-weight: 700;
+            font-family: inherit;
+            cursor: pointer;
+            box-shadow: 0 6px 22px rgba(123, 47, 247, 0.4);
+            transition: filter 0.18s ease, transform 0.18s ease;
+        }
+        button:hover { filter: brightness(1.12); transform: translateY(-1px); }
+        .error {
+            margin-top: 14px;
+            font-size: 13.5px;
+            color: #FF5C7A;
+        }
+        .privacy {
+            margin-top: 22px;
+            font-size: 11px;
+            color: #6E6899;
+            line-height: 1.6;
+        }
+        @keyframes fadeUp {
+            from { opacity: 0; transform: translateY(16px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+    </style>
+</head>
+<body>
+    <div class="login-card">
+        <img src="{{ url_for('static', filename='eva_mark.svg') }}" class="mark" alt="Bright E.V.A.">
+        <h1>Bright E.V.A.</h1>
+        <div class="sub">Evaluation Virtual Assistant</div>
+        <form method="POST">
+            <input type="password" name="password" placeholder="Access password" autofocus required>
+            <button type="submit">Sign in</button>
+        </form>
+        {% if error %}
+        <div class="error">{{ error }}</div>
+        {% endif %}
+        <div class="privacy">🔒 Protected access — minors' data (GDPR)</div>
+    </div>
+</body>
+</html>

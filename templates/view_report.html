@@ -1,0 +1,28 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>View Report</title>
+</head>
+<body>
+    <h1>View Report</h1>
+
+    <!-- Display the report details -->
+	 <h2>Ass Type: {{ type }}</h2>
+    <h2>Student Name: {{ name }}</h2>
+    <h2>Assessment Date: {{ date }}</h2>
+    <h2>Assessment: {{ theReport }}</h2>
+
+    <!-- Display the HTML report -->
+    <div style="white-space: pre-line;">{{ html_report }}</div>
+
+
+    <!-- Button to create PDF from the HTML report -->
+    <form action="/generate_pdf" method="POST">
+        <input type="hidden" name="html_report" value="{{ html_report }}">
+        <input type="hidden" name="pdf_filename" value="{{ name }}_{{ date }}.pdf">
+        <button type="submit">Create PDF Report</button>
+    </form>
+
+    <a href="/">Back to Home</a>
+</body>
+</html>

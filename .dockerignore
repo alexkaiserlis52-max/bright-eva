@@ -1,0 +1,24 @@
+# Secrets — NEVER baked into the image (injected as env vars at deploy)
+.env
+insudies-*.json
+service_account.json
+
+# Local dev
+.venv/
+__pycache__/
+*.pyc
+.git/
+.gitignore
+*.code-workspace
+output_folder/
+traces/
+
+# Docs not needed at runtime
+SHEETS_SETUP.md
+DEPLOY_CLOUDRUN.md
+RESEARCH*.md
+
+# PII backup (real names mapping) - never in the image
+students_backup_real_names_*.csv
+
+backup_*.json

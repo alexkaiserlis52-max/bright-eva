@@ -1,0 +1,173 @@
+{
+    "Main Title": "Lesson Plan",
+    "Objective": {
+        "Description": "Clearly state the learning objective or goal for the lesson.",
+        "Examples": [
+            "Students will understand the basics of algorithms.",
+            "Students will learn how to use a sensor in a simple circuit."
+        ]
+    },
+    "Grade Level": {
+        "Description": "Specify the appropriate grade level(s) for the lesson.",
+        "Examples": [
+            "Grade 5",
+            "Middle School"
+        ]
+    },
+    "Duration": {
+        "Description": "Indicate the total duration for the lesson in minutes.",
+        "Examples": [
+            "60 minutes",
+            "90 minutes"
+        ]
+    },
+    "Materials Needed": {
+        "Description": "List all materials required for the lesson in bullet points.",
+        "Examples": [
+            "Markers",
+            "Chart paper",
+            "Computers/Tablets",
+            "Specific software/tools"
+        ]
+    },
+    "Key Vocabulary": {
+        "Description": "List key vocabulary words that students need to know for the lesson in bullet points.",
+        "Examples": [
+            "Algorithm",
+            "Sensor",
+            "Environmental protection"
+        ]
+    },
+    "Preparation": {
+        "Description": "List all preparation steps required before the lesson begins in bullet points.",
+        "Examples": [
+            "Set up computers with necessary software",
+            "Prepare handouts and materials",
+            "Arrange the classroom for group work"
+        ]
+    },
+    "PART A": {
+        "Duration": "-- Duration in Minutes --",
+        "Engage": {
+            "Duration": "-- Duration in Minutes --",
+            "Description": [
+                "Introduce the topic and objectives of the lesson.",
+                "Discuss the importance of the lesson's subject matter.",
+                "Investigate initial questions or ideas to spark interest."
+            ],
+            "Examples": [
+                "Show a video or presentation related to the topic.",
+                "Ask probing questions to initiate discussion.",
+                "Perform a quick demonstration or experiment."
+            ]
+        },
+        "Explore": {
+            "Duration": "-- Duration in Minutes --",
+            "Description": [
+                "Allow students to explore the topic through hands-on activities or research.",
+                "Encourage brainstorming and idea generation."
+            ],
+            "Examples": [
+                {
+                    "What to explore": "Investigate how sensors work.",
+                    "What to build": "Create a simple circuit with a motor.",
+                    "What to brainstorm": "Programming ideas for running a motor using a sensor."
+                }
+            ]
+        },
+        "Explain": {
+            "Duration": "-- Duration in Minutes --",
+            "Description": [
+                "Share progress and demonstrate models or findings.",
+                "Facilitate sharing and inspiration from peers."
+            ],
+            "Examples": [
+                "Students present their initial models or research findings.",
+                "Class discusses the different approaches and solutions."
+            ]
+        }
+    },
+    "PART B": {
+        "Duration": "-- Duration in Minutes --",
+        "Explain": {
+            "Duration": "-- Duration in Minutes --",
+            "Description": [
+                "Continue sharing and brainstorming from Part A."
+            ],
+            "Examples": [
+                "Repeat sharing and discussing new ideas or refinements."
+            ]
+        },
+        "Elaborate": {
+            "Duration": "-- Duration in Minutes --",
+            "Description": [
+                "Continue building and programming models or working on projects.",
+                "Share completed models and explain their functions.",
+                "Discuss knowledge and skills gained."
+            ],
+            "Examples": [
+                "Students finalize their projects and present them to the class.",
+                "Class discusses the learning outcomes and real-world applications."
+            ]
+        },
+        "Evaluate": {
+            "Duration": "-- Duration in Minutes --",
+            "Description": [
+                "Use guiding questions to assess student understanding and decision-making.",
+                "Observe and record student progress using a checklist or rubric."
+            ],
+            "Examples": [
+                "Teacher asks specific questions to gauge student comprehension.",
+                "Teacher uses a checklist to track student progress and participation."
+            ]
+        },
+        "Self-Assessment": {
+            "Description": "Provide a method for students to reflect on their own learning.",
+            "Examples": [
+                "Blue brick: Follow instructions to create a program.",
+                "Yellow brick: Follow instructions to create a program.",
+                "Green brick: Follow instructions to create a program and help a friend."
+            ]
+        },
+        "Peer Feedback": {
+            "Description": "Encourage positive feedback and constructive suggestions within small groups.",
+            "Examples": [
+                "Students provide feedback to each other on their projects.",
+                "Class discusses the importance of constructive criticism."
+            ]
+        },
+        "Differentiation": {
+            "Description": "Adapt the lesson to meet the needs of diverse learners.",
+            "Examples": [
+                "Simplify: Limit research to a few community actions.",
+                "Increase Difficulty: Programs respond to user input or add a second response."
+            ]
+        },
+        "Extension": {
+            "Description": "Suggest additional activities or projects to extend learning.",
+            "Examples": [
+                "Research another community action for environmental protection and present findings."
+            ]
+        },
+        "Standards": {
+            "Description": "Align the lesson with relevant educational standards.",
+            "Examples": [
+                "Language Arts: CCSS.ELA-LITERACY.W.5.7"
+            ]
+        },
+        "Key Considerations for Teachers": {
+            "Specific Instructions to Highlight": [
+                "Emphasize critical steps and instructions that should not be overlooked."
+            ],
+            "Enhancing Results": [
+                "Tips on how to achieve better learning outcomes."
+            ],
+            "Areas of Caution": [
+                "Highlight potential challenges or common pitfalls to avoid."
+            ],
+            "Engagement Strategies": [
+                "Techniques to keep students engaged and motivated throughout the lesson."
+            ]
+        }
+    }
+}
